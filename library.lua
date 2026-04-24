@@ -303,4 +303,41 @@ function Library:CreateWindow(hubName)
     return WindowLogic
 end
 
+        function TabLogic:AddButton(side, text, callback)
+            local column = (side == "Left" and LeftCol or RightCol)
+            local ButtonFrame = Instance.new("Frame")
+            ButtonFrame.Size = UDim2.new(1, 0, 0, 28)
+            ButtonFrame.BackgroundTransparency = 1
+            ButtonFrame.Parent = column
+
+            local Btn = Instance.new("TextButton")
+            Btn.Size = UDim2.new(1, -10, 0, 22)
+            Btn.Position = UDim2.new(0, 5, 0.5, -11)
+            Btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+            Btn.Text = text
+            Btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+            Btn.TextSize = 13
+            Btn.Font = Enum.Font.SourceSans
+            Btn.Parent = ButtonFrame
+
+            local Corner = Instance.new("UICorner")
+            Corner.CornerRadius = UDim.new(0, 4)
+            Corner.Parent = Btn
+
+            local Stroke = Instance.new("UIStroke")
+            Stroke.Thickness = 1
+            Stroke.Color = Color3.fromRGB(65, 65, 65)
+            Stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+            Stroke.Parent = Btn
+
+            Btn.MouseButton1Click:Connect(function()
+                -- Визуальный эффект нажатия
+                Btn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+                task.wait(0.1)
+                Btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+                callback() -- Выполняем действие
+            end)
+        end
+
+
 return Library
