@@ -255,7 +255,10 @@ function Library:CreateWindow(hubName)
         Pages[name] = Page
         TabBtn.MouseButton1Click:Connect(function() ShowPage(name) end)
 
-        local TabLogic = {Left = LeftCol, Right = RightCol}
+        Pages[name] = Page
+        TabBtn.MouseButton1Click:Connect(function() ShowPage(name) end)
+
+        local TabLogic = {}
 
         function TabLogic:AddToggle(side, text, callback)
             local column = (side == "Left" and LeftCol or RightCol)
@@ -296,12 +299,6 @@ function Library:CreateWindow(hubName)
                 callback(enabled)
             end)
         end
-        return TabLogic
-    end
-
-    function WindowLogic:Show(name) ShowPage(name) end
-    return WindowLogic
-end
 
         function TabLogic:AddButton(side, text, callback)
             local column = (side == "Left" and LeftCol or RightCol)
@@ -331,13 +328,18 @@ end
             Stroke.Parent = Btn
 
             Btn.MouseButton1Click:Connect(function()
-                -- Визуальный эффект нажатия
                 Btn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
                 task.wait(0.1)
                 Btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-                callback() -- Выполняем действие
+                callback()
             end)
         end
 
+        return TabLogic -- TabLogic теперь возвращается ПОСЛЕ всех функций
+    end
+
+    function WindowLogic:Show(name) ShowPage(name) end
+    return WindowLogic
+end
 
 return Library
