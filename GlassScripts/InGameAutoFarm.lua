@@ -7,25 +7,33 @@ return function()
     local Library = ReplicatedStorage:WaitForChild("Library")
     local AutoFarmCmds = require(Library.Client.AutoFarmCmds)
 
+    -- Принудительно ставим выключенное состояние при первой загрузке
+    getgenv().AutoFarmEnabled = false 
+
     task.spawn(function()
         while true do
-            -- Используем переменную getgenv().AutoFarmEnabled для связи с кнопкой
-            if getgenv().AutoFarmEnabled then
+            -- Ждем 1 секунду между проверками, чтобы не нагружать сервер
+            task.wait(1)
+
+            -- Если кнопка ВКЛЮЧЕНА (true)
+            if getgenv().AutoFarmEnabled == true then
                 if not AutoFarmCmds.IsEnabled() then
                     pcall(function()
                         AutoFarmCmds.Enable()
+                        print("🧊 GlassHub: Игровой автофарм ВКЛЮЧЕН")
                     end)
                 end
-            else
+            -- Если кнопка ВЫКЛЮЧЕНА (false)
+            elseif getgenv().AutoFarmEnabled == false then
                 if AutoFarmCmds.IsEnabled() then
                     pcall(function()
                         AutoFarmCmds.Disable()
+                        print("🧊 GlassHub: Игровой автофарм ВЫКЛЮЧЕН")
                     end)
                 end
             end
-            task.wait(1)
         end
     end)
     
-    print("🧊 GlassHub: Внутриигровой автофарм готов к работе.")
+    print("🧊 GlassHub: Внутриигровой автофарм инициализирован (OFF).")
 end
