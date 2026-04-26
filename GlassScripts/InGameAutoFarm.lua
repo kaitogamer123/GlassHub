@@ -1,6 +1,5 @@
 -- Файл: GlassScripts/InGameAutoFarm.lua
 return function()
-    -- Чтобы не запускать цикл дважды
     if getgenv().InGameLoopActive then return end
     getgenv().InGameLoopActive = true
 
@@ -8,12 +7,14 @@ return function()
     local Library = ReplicatedStorage:WaitForChild("Library")
     local AutoFarmCmds = require(Library.Client.AutoFarmCmds)
 
-    -- Изначально ВЫКЛЮЧЕНО
-    getgenv().AutoFarmEnabled = false 
+    -- Синхронизируем: если в меню уже нажато, подхватываем значение
+    if getgenv().AutoFarmEnabled == nil then
+        getgenv().AutoFarmEnabled = false 
+    end
 
     task.spawn(function()
         while true do
-            -- Используем getgenv(), чтобы кнопка из GUI могла менять это значение
+            -- Используем строго getgenv(), так как кнопка в лоадере меняет именно его
             if getgenv().AutoFarmEnabled then
                 if not AutoFarmCmds.IsEnabled() then
                     pcall(function()
@@ -27,8 +28,8 @@ return function()
                     end)
                 end
             end
-            task.wait(1)
+            task.wait(0.5) -- Оптимальная задержка
         end
     end)
-    print("🧊 GlassHub: Рабочий цикл автофарма загружен!")
+    print("🧊 GlassHub: Рабочий цикл исправлен и запущен!")
 end
