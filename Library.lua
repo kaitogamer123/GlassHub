@@ -272,9 +272,6 @@ function Library:CreateWindow(hubName)
         Pages[name] = Page
         TabBtn.MouseButton1Click:Connect(function() ShowPage(name) end)
 
-        Pages[name] = Page
-        TabBtn.MouseButton1Click:Connect(function() ShowPage(name) end)
-
         local TabLogic = {}
 
         function TabLogic:AddToggle(side, text, callback)
