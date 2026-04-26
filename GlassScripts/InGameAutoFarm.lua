@@ -1,24 +1,31 @@
 -- Файл: GlassScripts/InGameAutoFarm.lua
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Library = ReplicatedStorage:WaitForChild("Library")
-local AutoFarmCmds = require(Library.Client.AutoFarmCmds)
+return function()
+    if getgenv().InGameFarmLoopStarted then return end
+    getgenv().InGameFarmLoopStarted = true
 
--- Возвращаем таблицу с функциями напрямую
-return {
-    Enable = function()
-        pcall(function()
-            if not AutoFarmCmds.IsEnabled() then
-                AutoFarmCmds.Enable()
-                print("🧊 GlassHub: Включено")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local AutoFarmCmds = require(ReplicatedStorage.Library.Client.AutoFarmCmds)
+
+    task.spawn(function()
+        while true do
+            -- Проверяем глобальную переменную, которую меняет твоя кнопка
+            if getgenv().AutoFarmEnabled == true then 
+                local success, isEnabled = pcall(function() return AutoFarmCmds.IsEnabled() end)
+                
+                if success and not isEnabled then
+                    pcall(function() 
+                        AutoFarmCmds.Enable() 
+                        -- print("🧊 GlassHub: Принудительное переподключение фарма")
+                    end)
+                end
+            elseif getgenv().AutoFarmEnabled == false then
+                -- Если кнопку отжали, один раз выключаем и ждем
+                if AutoFarmCmds.IsEnabled() then
+                    pcall(function() AutoFarmCmds.Disable() end)
+                end
             end
-        end)
-    end,
-    Disable = function()
-        pcall(function()
-            if AutoFarmCmds.IsEnabled() then
-                AutoFarmCmds.Disable()
-                print("🧊 GlassHub: Выключено")
-            end
-        end)
-    end
-}
+            task.wait(1) -- Проверка раз в секунду, чтобы не лагало
+        end
+    end)
+    print("🧊 GlassHub: Логика автофарма инициализирована")
+end
