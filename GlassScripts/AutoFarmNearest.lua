@@ -53,7 +53,7 @@ return function()
 
                     -- Если цель найдена и есть петы
                     if nearest and #petIds > 0 then
-                        if os.clock() - lastFire > 0.2 then
+                        if os.clock() - lastFire > 0.05 then
                             local attackData = {}
                             for _, pId in ipairs(petIds) do
                                 attackData[pId] = nearest
@@ -68,7 +68,7 @@ return function()
                     end
                 end
             end
-            task.wait(0.1) -- Ускорили цикл для "спид" эффекта
+            task.wait(0.05) -- Ускорили цикл для "спид" эффекта
         end
     end)
 end
