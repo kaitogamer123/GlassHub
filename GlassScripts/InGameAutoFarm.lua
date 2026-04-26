@@ -1,31 +1,34 @@
 -- Файл: GlassScripts/InGameAutoFarm.lua
 return function()
-    if getgenv().InGameFarmLoopStarted then return end
-    getgenv().InGameFarmLoopStarted = true
+    -- Чтобы не запускать цикл дважды
+    if getgenv().InGameLoopActive then return end
+    getgenv().InGameLoopActive = true
 
     local ReplicatedStorage = game:GetService("ReplicatedStorage")
-    local AutoFarmCmds = require(ReplicatedStorage.Library.Client.AutoFarmCmds)
+    local Library = ReplicatedStorage:WaitForChild("Library")
+    local AutoFarmCmds = require(Library.Client.AutoFarmCmds)
+
+    -- Изначально ВЫКЛЮЧЕНО
+    getgenv().AutoFarmEnabled = false 
 
     task.spawn(function()
         while true do
-            -- Проверяем глобальную переменную, которую меняет твоя кнопка
-            if getgenv().AutoFarmEnabled == true then 
-                local success, isEnabled = pcall(function() return AutoFarmCmds.IsEnabled() end)
-                
-                if success and not isEnabled then
-                    pcall(function() 
-                        AutoFarmCmds.Enable() 
-                        -- print("🧊 GlassHub: Принудительное переподключение фарма")
+            -- Используем getgenv(), чтобы кнопка из GUI могла менять это значение
+            if getgenv().AutoFarmEnabled then
+                if not AutoFarmCmds.IsEnabled() then
+                    pcall(function()
+                        AutoFarmCmds.Enable()
                     end)
                 end
-            elseif getgenv().AutoFarmEnabled == false then
-                -- Если кнопку отжали, один раз выключаем и ждем
+            else
                 if AutoFarmCmds.IsEnabled() then
-                    pcall(function() AutoFarmCmds.Disable() end)
+                    pcall(function()
+                        AutoFarmCmds.Disable()
+                    end)
                 end
             end
-            task.wait(1) -- Проверка раз в секунду, чтобы не лагало
+            task.wait(1)
         end
     end)
-    print("🧊 GlassHub: Логика автофарма инициализирована")
+    print("🧊 GlassHub: Рабочий цикл автофарма загружен!")
 end
