@@ -1,23 +1,18 @@
 --[[
-    Файл: AutoSpeedPets.lua
-    Логика для Pet Simulator 99 (Bulk Pet Attack)
+    Файл: GlassScripts/AutofarmNearest.lua
+    Логика для Pet Simulator 99
 ]]
 
 return function()
-    -- Проверка на дубликаты (чтобы не запускать цикл дважды)
+    -- Защита от повторного запуска цикла
     if getgenv().AutoSpeedPetsLoaded then 
+        print("🧊 GlassHub: Логика уже была загружена ранее.")
         return 
     end
     getgenv().AutoSpeedPetsLoaded = true
 
-    -- Настройка переменной управления (если еще не создана)
-    if getgenv().AutoSpeedPetsForRank == nil then
-        getgenv().AutoSpeedPetsForRank = false
-    end
-
     local Network = game:GetService("ReplicatedStorage"):WaitForChild("Network"):WaitForChild("Breakables_JoinPetBulk")
     local player = game:GetService("Players").LocalPlayer
-
     local things = workspace:WaitForChild("__THINGS")
     local breakables = things.Breakables
     local petsFolder = things.Pets
@@ -25,44 +20,32 @@ return function()
     local petIds = {}
     local breakableList = breakables:GetChildren()
 
-    -- Обновление списка петов
     local function updatePetList()
         table.clear(petIds)
         for _, pet in ipairs(petsFolder:GetChildren()) do
-            if pet.Name:match("^%d+$") then
-                table.insert(petIds, pet.Name)
-            end
+            if pet.Name:match("^%d+$") then table.insert(petIds, pet.Name) end
         end
     end
 
-    -- Обновление списка объектов
-    local function updateBreakables()
-        breakableList = breakables:GetChildren()
-    end
+    local function updateBreakables() breakableList = breakables:GetChildren() end
 
-    -- Подписки на события
     breakables.ChildAdded:Connect(updateBreakables)
     breakables.ChildRemoved:Connect(updateBreakables)
     petsFolder.ChildAdded:Connect(updatePetList)
     petsFolder.ChildRemoved:Connect(updatePetList)
 
-    task.delay(2, updatePetList)
+    task.spawn(updatePetList)
 
-    -- Поиск целей в радиусе
     local function getTargetsInRange(radius)
         local char = player.Character
         local root = char and char:FindFirstChild("HumanoidRootPart")
         if not root then return {} end
-
         local myPos = root.Position
-        local radiusSq = radius * radius
         local found = {}
-
         for _, obj in ipairs(breakableList) do
             local part = obj:FindFirstChild("Main") or obj:FindFirstChildWhichIsA("BasePart")
             if part then
-                local diff = part.Position - myPos
-                if (diff.X^2 + diff.Y^2 + diff.Z^2) <= radiusSq then
+                if (part.Position - myPos).Magnitude <= radius then
                     table.insert(found, obj.Name)
                 end
             end
@@ -72,31 +55,28 @@ return function()
 
     local lastFire = 0
 
-    -- ОСНОВНОЙ ЦИКЛ ФАРМА
+    -- ВЕЧНЫЙ ЦИКЛ (он не выключится сам)
     task.spawn(function()
+        print("🧊 GlassHub: Цикл фарма запущен и ожидает включения кнопки.")
         while true do
-            -- Цикл работает всегда, но атакует только когда кнопка включена (true)
-            if getgenv().AutoSpeedPetsForRank then
-                local targets = getTargetsInRange(60)
-                local petCount = #petIds
+            -- Проверяем глобальную переменную из кнопки
+            if getgenv().AutoSpeedPetsForRank == true then
+                local success, err = pcall(function()
+                    local targets = getTargetsInRange(60)
+                    if #targets > 0 and #petIds > 0 then
+                        local mainTarget = targets[1]
+                        local attackData = {}
+                        for _, pId in ipairs(petIds) do attackData[pId] = mainTarget end
 
-                if #targets > 0 and petCount > 0 then
-                    local mainTarget = targets[1]
-                    local attackData = {}
-
-                    for _, pId in ipairs(petIds) do
-                        attackData[pId] = mainTarget
+                        if os.clock() - lastFire > 0.15 then
+                            Network:FireServer(attackData)
+                            lastFire = os.clock()
+                        end
                     end
-
-                    if os.clock() - lastFire > 0.15 then
-                        Network:FireServer(attackData)
-                        lastFire = os.clock()
-                    end
-                end
+                end)
+                if not success then warn("Ошибка в цикле: " .. err) end
             end
             task.wait(0.2)
         end
     end)
-    
-    print("🧊 GlassHub: Логика AutoSpeedPets успешно загружена!")
 end
