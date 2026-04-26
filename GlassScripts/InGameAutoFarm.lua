@@ -1,43 +1,27 @@
 -- Файл: GlassScripts/InGameAutoFarm.lua
 return function()
-    -- Глобальная защита от дубликатов цикла
-    if getgenv().InGameLoopActive then 
-        print("🧊 GlassHub: Цикл уже запущен, пропускаю дубликат.")
-        return 
-    end
-    getgenv().InGameLoopActive = true
+    if _G.InGameLoopActive then return end
+    _G.InGameLoopActive = true
 
-    local ReplicatedStorage = game:GetService("ReplicatedStorage")
-    local Library = ReplicatedStorage:WaitForChild("Library")
-    local AutoFarmCmds = require(Library.Client.AutoFarmCmds)
-
+    local AutoFarmCmds = require(game:GetService("ReplicatedStorage").Library.Child("Library").Client.AutoFarmCmds)
+    
     task.spawn(function()
-        print("🧊 GlassHub: Система контроля автофарма активна")
+        local lastState = nil 
         
         while true do
-            -- Проверяем, что хочет пользователь через GUI
-            local wantEnabled = getgenv().AutoFarmEnabled
-            local isCurrentlyEnabled = AutoFarmCmds.IsEnabled()
-
-            if wantEnabled then
-                -- Включаем ТОЛЬКО если еще не включено
-                if not isCurrentlyEnabled then
-                    pcall(function()
-                        AutoFarmCmds.Enable()
-                    end)
-                    print("🧊 AutoFarm: Активирован")
+            -- Кнопка в GUI меняет _G.AutoFarmEnabled (так как мы их приравняли)
+            local currentState = _G.AutoFarmEnabled
+            
+            if currentState ~= lastState then
+                if currentState == true then
+                    pcall(function() AutoFarmCmds.Enable() end)
+                else
+                    pcall(function() AutoFarmCmds.Disable() end)
                 end
-            else
-                -- Выключаем ТОЛЬКО если еще включено
-                if isCurrentlyEnabled then
-                    pcall(function()
-                        AutoFarmCmds.Disable()
-                    end)
-                    print("🧊 AutoFarm: Деактивирован")
-                end
+                lastState = currentState
             end
             
-            task.wait(1) -- Не ставь меньше 1 секунды, чтобы игра успевала обработать запрос
+            task.wait(0.5)
         end
     end)
 end
