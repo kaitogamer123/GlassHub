@@ -1,27 +1,20 @@
 -- Файл: GlassScripts/InGameAutoFarm.lua
 return function()
-    if _G.InGameLoopActive then return end
-    _G.InGameLoopActive = true
+    local AutoFarmCmds = require(game:GetService("ReplicatedStorage").Library.Client.AutoFarmCmds)
 
-    local AutoFarmCmds = require(game:GetService("ReplicatedStorage").Library.Child("Library").Client.AutoFarmCmds)
-    
     task.spawn(function()
-        local lastState = nil 
-        
         while true do
-            -- Кнопка в GUI меняет _G.AutoFarmEnabled (так как мы их приравняли)
-            local currentState = _G.AutoFarmEnabled
-            
-            if currentState ~= lastState then
-                if currentState == true then
+            -- Используем getgenv, чтобы кнопка из лоадера (выше) работала
+            if getgenv().AutoFarmEnabled then
+                if not AutoFarmCmds.IsEnabled() then
                     pcall(function() AutoFarmCmds.Enable() end)
-                else
+                end
+            else
+                if AutoFarmCmds.IsEnabled() then
                     pcall(function() AutoFarmCmds.Disable() end)
                 end
-                lastState = currentState
             end
-            
-            task.wait(0.5)
+            task.wait(1) 
         end
     end)
 end
