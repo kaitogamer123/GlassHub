@@ -1,10 +1,7 @@
-local Window = requireHttp and requireHttp("Library/Window.lua") or loadstring(game:HttpGet(""))()
-local Tabs = requireHttp and requireHttp("Library/Tabs.lua") or loadstring(game:HttpGet(""))()
+local Window = loadstring(game:HttpGet(
+    "https://raw.githubusercontent.com/kaitogamer123/GlassHub/refs/heads/main/Library/Window.lua"
+))()
 
-local Library = {}
-
-function Library:CreateWindow(name)
-    return Window.CreateWindow(name)
-end
-
-return Library
+return {
+    CreateWindow = Window.CreateWindow
+}
