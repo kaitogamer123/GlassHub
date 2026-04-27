@@ -42,6 +42,19 @@ function Library:CreateWindow(hubName)
 	MainFrame.ClipsDescendants = true
 	MainFrame.Parent = ScreenGui
 
+	local BackgroundImage = Instance.new("ImageLabel")
+	BackgroundImage.Name = "BackgroundImage"
+	BackgroundImage.Parent = MainFrame
+
+	BackgroundImage.Size = UDim2.new(1, 0, 1, 0)
+	BackgroundImage.Position = UDim2.new(0, 0, 0, 0)
+
+	BackgroundImage.BackgroundTransparency = 1
+	BackgroundImage.Image = ""
+	BackgroundImage.ImageTransparency = 0.7
+	BackgroundImage.ScaleType = Enum.ScaleType.Crop
+	BackgroundImage.ZIndex = 0
+
 	local MiniFrame = Instance.new("Frame")
 	MiniFrame.Name = "MiniFrame"
 	MiniFrame.Size = UDim2.new(0, 60, 0, 60)
@@ -541,7 +554,10 @@ function Library:CreateWindow(hubName)
 				callback()
 			end)
 		end
+		local MiscTab = Window:CreateTab("Misc", "⚙️")
 
+    end
+end)
 		return TabLogic
 	end
 
