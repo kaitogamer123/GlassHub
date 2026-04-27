@@ -1,33 +1,27 @@
 local Library = {}
-
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local HttpService = game:GetService("HttpService")
 
-local Config = {}
-local ConfigFolder = "GlassHub"
-local ConfigFile = ConfigFolder .. "/config.json"
+-- Переносим конфиг прямо в объект Library
+Library.Config = {}
+Library.ConfigFolder = "GlassHub"
+Library.ConfigFile = Library.ConfigFolder .. "/config.json"
 
-local function SaveConfig()
-	if not isfolder(ConfigFolder) then
-		makefolder(ConfigFolder)
-	end
-
-	writefile(ConfigFile, HttpService:JSONEncode(Config))
+function Library:SaveConfig()
+    if not isfolder(self.ConfigFolder) then makefolder(self.ConfigFolder) end
+    writefile(self.ConfigFile, HttpService:JSONEncode(self.Config))
 end
 
-local function LoadConfig()
-	if isfile(ConfigFile) then
-		local success, data = pcall(function()
-			return HttpService:JSONDecode(readfile(ConfigFile))
-		end)
-
-		if success then
-			Config = data
-		end
-	end
+function Library:LoadConfig()
+    if isfile(self.ConfigFile) then
+        local success, data = pcall(function() return HttpService:JSONDecode(readfile(self.ConfigFile)) end)
+        if success then self.Config = data end
+    end
 end
 
+-- Загружаем конфиг сразу при инициализации
+Library:LoadConfig()
 function Library:CreateWindow(hubName)
 	local ScreenGui = Instance.new("ScreenGui")
 	ScreenGui.Name = "GlassHub_PS99"
@@ -445,6 +439,7 @@ function Library:CreateWindow(hubName)
 				callback(enabled)
 			end)
 		end
+
 		function TabLogic:AddDropdown(side, text, list, callback)
 			local column = (side == "Left" and LeftCol or RightCol)
 
