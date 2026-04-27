@@ -554,10 +554,6 @@ function Library:CreateWindow(hubName)
 				callback()
 			end)
 		end
-		local MiscTab = Window:CreateTab("Misc", "⚙️")
-
-    end
-end)
 		return TabLogic
 	end
 
