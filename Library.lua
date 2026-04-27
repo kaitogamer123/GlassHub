@@ -445,7 +445,6 @@ function Library:CreateWindow(hubName)
 				callback(enabled)
 			end)
 		end
-
 		function TabLogic:AddDropdown(side, text, list, callback)
 			local column = (side == "Left" and LeftCol or RightCol)
 
@@ -459,7 +458,7 @@ function Library:CreateWindow(hubName)
 			MainBtn.Size = UDim2.new(1, -10, 0, 22)
 			MainBtn.Position = UDim2.new(0, 5, 0, 2)
 			MainBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-			MainBtn.Text = (Config[text] or text) .. " ▼"
+			MainBtn.Text = text .. " ▼"
 			MainBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
 			MainBtn.TextSize = 12
 			MainBtn.Font = Enum.Font.SourceSans
@@ -476,13 +475,14 @@ function Library:CreateWindow(hubName)
 			Stroke.Parent = MainBtn
 
 			local opened = false
+			local selectedItems = Config[text] or {}
 
 			MainBtn.MouseButton1Click:Connect(function()
 				opened = not opened
-
 				TweenService:Create(DropFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
 					Size = UDim2.new(1, 0, 0, opened and (#list * 22 + 28) or 26)
 				}):Play()
+				MainBtn.Text = opened and text .. " ▲" or text .. " ▼"
 			end)
 
 			for i, v in pairs(list) do
@@ -491,7 +491,7 @@ function Library:CreateWindow(hubName)
 				Item.Position = UDim2.new(0, 5, 0, i * 22 + 4)
 				Item.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 				Item.Text = v
-				Item.TextColor3 = Color3.fromRGB(180, 180, 180)
+				Item.TextColor3 = selectedItems[v] and Color3.fromRGB(140, 100, 255) or Color3.fromRGB(180, 180, 180)
 				Item.TextSize = 12
 				Item.Font = Enum.Font.SourceSans
 				Item.Parent = DropFrame
@@ -499,23 +499,23 @@ function Library:CreateWindow(hubName)
 				Instance.new("UICorner", Item).CornerRadius = UDim.new(0, 4)
 
 				Item.MouseButton1Click:Connect(function()
-					opened = false
-					MainBtn.Text = v .. " ▼"
-					Config[text] = v
+					selectedItems[v] = not selectedItems[v]
+					Config[text] = selectedItems
 					SaveConfig()
 
-					TweenService:Create(DropFrame, TweenInfo.new(0.3), {
-						Size = UDim2.new(1, 0, 0, 26)
-					}):Play()
+					local targetColor = selectedItems[v] and Color3.fromRGB(140, 100, 255) or Color3.fromRGB(180, 180, 180)
+					TweenService:Create(Item, TweenInfo.new(0.2), {TextColor3 = targetColor}):Play()
 
-					callback(v)
+					callback(v, selectedItems[v])
 				end)
 			end
 
-			if Config[text] then
-				task.spawn(function()
-					callback(Config[text])
-				end)
+			for name, state in pairs(selectedItems) do
+				if state then
+					task.spawn(function()
+						callback(name, true)
+					end)
+				end
 			end
 		end
 
