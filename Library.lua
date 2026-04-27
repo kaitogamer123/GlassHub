@@ -273,47 +273,55 @@ function Library:CreateWindow(hubName)
         TabBtn.MouseButton1Click:Connect(function() ShowPage(name) end)
 
         local TabLogic = {}
-
-        function TabLogic:AddToggle(side, text, callback)
-            local column = (side == "Left" and LeftCol or RightCol)
-            local ToggleFrame = Instance.new("Frame")
-            ToggleFrame.Size = UDim2.new(1, 0, 0, 22)
-            ToggleFrame.BackgroundTransparency = 1
+		function TabLogic:AddToggle(side, text, callback)
+			local column = (side == "Left" and LeftCol or RightCol)
+			local ToggleFrame = Instance.new("Frame")
+			ToggleFrame.Size = UDim2.new(1, 0, 0, 22)
+			ToggleFrame.BackgroundTransparency = 1
             ToggleFrame.Parent = column
-            local Label = Instance.new("TextLabel")
-            Label.Size = UDim2.new(1, -30, 1, 0)
-            Label.Position = UDim2.new(0, 5, 0, 0)
-            Label.BackgroundTransparency = 1
+			local Label = Instance.new("TextLabel")
+			Label.Size = UDim2.new(1, -30, 1, 0)
+			Label.Position = UDim2.new(0, 5, 0, 0)
+			Label.BackgroundTransparency = 1
             Label.Text = text
-            Label.TextColor3 = Color3.fromRGB(180, 180, 180)
-            Label.TextSize = 13
-            Label.Font = Enum.Font.SourceSans
+			Label.TextColor3 = Color3.fromRGB(180, 180, 180)
+			Label.TextSize = 13
+			Label.Font = Enum.Font.SourceSans
             Label.TextXAlignment = Enum.TextXAlignment.Left
-            Label.Parent = ToggleFrame
-            local Box = Instance.new("TextButton")
-            Box.Size = UDim2.new(0, 14, 0, 14)
+			Label.Parent = ToggleFrame
+			local Box = Instance.new("TextButton")
+			Box.Size = UDim2.new(0, 14, 0, 14)
             Box.Position = UDim2.new(1, -20, 0.5, -7)
-            Box.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-            Box.BorderSizePixel = 0
-            Box.Text = "" 
+			Box.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+			Box.BorderSizePixel = 0
+			Box.Text = "" 
             Box.Parent = ToggleFrame
+			local Gradient = Instance.new("UIGradient")
+			Gradient.Color = ColorSequence.new({
+					ColorSequenceKeypoint.new(0, Color3.fromRGB(80, 120, 255)),
+                    ColorSequenceKeypoint.new(1, Color3.fromRGB(160, 80, 255))
+			})
+			Gradient.Rotation = 45
+			Gradient.Enabled = false
+			Gradient.Parent = Box
             local Corner = Instance.new("UICorner")
-            Corner.CornerRadius = UDim.new(0, 3)
-            Corner.Parent = Box
-            local Stroke = Instance.new("UIStroke")
+			Corner.CornerRadius = UDim.new(0, 3)
+			Corner.Parent = Box
+			local Stroke = Instance.new("UIStroke")
             Stroke.Thickness = 1
-            Stroke.Color = Color3.fromRGB(60, 60, 60)
-            Stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-            Stroke.Parent = Box
+			Stroke.Color = Color3.fromRGB(60, 60, 60)
+			Stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+			Stroke.Parent = Box
             local enabled = false
-            Box.MouseButton1Click:Connect(function()
-                enabled = not enabled
-                TweenService:Create(Box, TweenInfo.new(0.2), {BackgroundColor3 = enabled and Color3.fromRGB(80, 255, 80) or Color3.fromRGB(40, 40, 40)}):Play()
-                TweenService:Create(Stroke, TweenInfo.new(0.2), {Color = enabled and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(60, 60, 60)}):Play()
-                callback(enabled)
-            end)
-        end
-
+			Box.MouseButton1Click:Connect(function()
+					enabled = not enabled
+					Gradient.Enabled = enabled
+                    Box.BackgroundColor3 = enabled and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(40, 40, 40)
+					local targetStroke = enabled and Color3.fromRGB(140, 100, 255) or Color3.fromRGB(60, 60, 60)
+					TweenService:Create(Stroke, TweenInfo.new(0.2), {Color = targetStroke}):Play()
+					callback(enabled)
+			end)
+    	end
         function TabLogic:AddButton(side, text, callback)
             local column = (side == "Left" and LeftCol or RightCol)
             local ButtonFrame = Instance.new("Frame")
