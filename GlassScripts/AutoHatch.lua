@@ -1,61 +1,84 @@
-    local function hatchNearest()
-        local player = game.Players.LocalPlayer
-        local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-        if not root then return end
-        
-        local rootPos = root.Position
-        local things = game.Workspace:WaitForChild("__THINGS")
-        local network = game:GetService("ReplicatedStorage"):WaitForChild("Network")
-        
-        local nearestEgg = nil
-        local eggType = nil -- "Normal" или "Custom"
-        local minDist = 100 
+-- Файл: GlassScripts/AutoHatch.lua
+return function()
+    if getgenv().AutoHatchLoaded then return end
+    getgenv().AutoHatchLoaded = true
 
-        -- 1. ИЩЕМ В ОБЫЧНЫХ (ZoneEggs)
-        local zoneEggs = things:FindFirstChild("ZoneEggs")
-        if zoneEggs then
-            for _, v in pairs(zoneEggs:GetDescendants()) do
-                if v:IsA("Model") and (v:FindFirstChild("Main") or v:FindFirstChild("Center")) then
-                    local dist = (rootPos - (v:FindFirstChild("Main") or v:FindFirstChild("Center")).Position).Magnitude
-                    if dist < minDist then
-                        local data = EggsUtil.GetByNumber(tonumber(v.Name:match("^%d+"))) or EggsUtil.GetById(v.Name)
-                        if data then
-                            minDist = dist
-                            nearestEgg = data._id
-                            eggType = "Normal"
-                        end
-                    end
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local EggCmds = require(ReplicatedStorage.Library.Client.EggCmds)
+    local lp = game.Players.LocalPlayer
+
+    -- Функция поиска ближайшего яйца любого типа
+    local function getNearestEgg()
+        local nearestData = nil
+        local minDist = 30 -- Дистанция подбора
+        local root = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
+        
+        if not root then return nil end
+
+        local things = workspace.__THINGS
+        
+        -- 1. СКАНИРУЕМ ИВЕНТОВЫЕ (Custom)
+        local customFolder = things:FindFirstChild("CustomEggs")
+        if customFolder then
+            for _, egg in pairs(customFolder:GetChildren()) do
+                local dist = (egg:GetPivot().Position - root.Position).Magnitude
+                if dist < minDist then
+                    minDist = dist
+                    nearestData = {id = egg.Name, type = "Custom"}
                 end
             end
         end
 
-        -- 2. ИЩЕМ В ИВЕНТОВЫХ (CustomEggs)
-        local customEggs = things:FindFirstChild("CustomEggs")
-        if customEggs then
-            for _, v in pairs(customEggs:GetChildren()) do
-                local part = v:FindFirstChild("Main") or v:FindFirstChild("Center") or v:FindFirstChildWhichIsA("BasePart")
-                if part then
-                    local dist = (rootPos - part.Position).Magnitude
+        -- 2. СКАНИРУЕМ ОБЫЧНЫЕ (ZoneEggs)
+        local zoneFolder = things:FindFirstChild("ZoneEggs")
+        if zoneFolder and not nearestData then -- Если ивент не найден в упор, ищем обычные
+            for _, world in pairs(zoneFolder:GetChildren()) do
+                for _, egg in pairs(world:GetChildren()) do
+                    local dist = (egg:GetPivot().Position - root.Position).Magnitude
                     if dist < minDist then
                         minDist = dist
-                        nearestEgg = v.Name -- Для кастомных это ID папки
-                        eggType = "Custom"
+                        nearestData = {id = egg.Name, type = "Normal"}
                     end
                 end
             end
         end
+        
+        return nearestData
+    end
 
-        -- ОТПРАВКА ЗАПРОСА
-        if nearestEgg and eggType then
-            local maxHatch = 1
-            pcall(function() maxHatch = EggCmds.GetMaxHatch() end)
-            
-            if eggType == "Custom" then
-                -- Сигнал для ивентовых яиц
-                network.CustomEggs_Hatch:InvokeServer(nearestEgg, maxHatch)
+    -- ЦИКЛ РАБОТЫ
+    task.spawn(function()
+        -- Отключаем анимацию открытия (Anti-Lag)
+        local playerGui = lp:WaitForChild("PlayerGui")
+        task.spawn(function()
+            while true do
+                if getgenv().AutoHatchNearEgg and playerGui:FindFirstChild("EggOpen") then
+                    playerGui.EggOpen.Enabled = false
+                end
+                task.wait(2)
+            end
+        end)
+
+        while true do
+            if getgenv().AutoHatchNearEgg then
+                local egg = getNearestEgg()
+                local maxAmount = EggCmds.GetMaxHatch()
+
+                if egg then
+                    pcall(function()
+                        if egg.type == "Custom" then
+                            -- Сигнал для ивентовых
+                            ReplicatedStorage.Network.CustomEggs_Hatch:InvokeServer(egg.id, maxAmount)
+                        else
+                            -- Сигнал для обычных
+                            ReplicatedStorage.Network.Eggs_RequestPurchase:InvokeServer(egg.id, maxAmount)
+                        end
+                    end)
+                end
+                task.wait(0.3)
             else
-                -- Сигнал для обычных яиц
-                network.Eggs_RequestPurchase:InvokeServer(nearestEgg, maxHatch)
+                task.wait(1)
             end
         end
-    end
+    end)
+end
