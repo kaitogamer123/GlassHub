@@ -47,7 +47,7 @@ local function showVisualRadius()
 	circle.Material = Enum.Material.Neon
 	
 	local d = getgenv().EventFarmRadius * 2
-	circle.Size = Vector3.new(0.2, d, d)
+	circle.Size = Vector3.new(0.2, d+1, d)
 	circle.Parent = workspace
 	lastCircle = circle
 
