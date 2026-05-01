@@ -432,15 +432,14 @@ function Library:CreateWindow(hubName)
 			CircleStroke.Color = Color3.fromRGB(140, 100, 255)
 			CircleStroke.Parent = Circle
 
-			-- Логика слайдера
 			local value = Library.Config[text] or default
 			local dragging = false
 
 			local function UpdateSlider()
 				local percent = math.clamp((value - min) / (max - min), 0, 1)
 				ValueLabel.Text = tostring(value)
-				TweenService:Create(Fill, TweenInfo.new(0.1), {Size = UDim2.new(percent, 0, 1, 0)}):Play()
-				TweenService:Create(Circle, TweenInfo.new(0.1), {Position = UDim2.new(percent, -5, 0.5, -5)}):Play()
+				Fill.Size = UDim2.new(percent, 0, 1, 0)
+				Circle.Position = UDim2.new(percent, -5, 0.5, -5)
 			end
 
 			local function Move(input)
@@ -449,7 +448,6 @@ function Library:CreateWindow(hubName)
 				if newValue ~= value then
 					value = newValue
 					Library.Config[text] = value
-					if Library.SaveConfig then Library.SaveConfig() end
 					UpdateSlider()
 					callback(value)
 				end
