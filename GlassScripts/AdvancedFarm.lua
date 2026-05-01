@@ -7,6 +7,7 @@ local breakables = things:WaitForChild("Breakables")
 local petsFolder = things:WaitForChild("Pets")
 local Map3 = workspace:WaitForChild("Map3")
 
+-- Глобальные переменные для управления
 getgenv().AdvancedFarmActive = false
 getgenv().LockedZone = nil 
 
@@ -16,6 +17,7 @@ local function log(msg)
     print("🧊 [AdvancedFarm]: " .. tostring(msg))
 end
 
+-- Сбор твоих активных петов
 local function updatePetList()
     table.clear(petIds)
     for _, pet in ipairs(petsFolder:GetChildren()) do
@@ -29,6 +31,7 @@ updatePetList()
 petsFolder.ChildAdded:Connect(updatePetList)
 petsFolder.ChildRemoved:Connect(updatePetList)
 
+-- Поиск ближайшей зоны (используется только если цель не залочена кнопкой)
 local function getNearestZone()
     local closest, dist = nil, math.huge
     local char = player.Character
@@ -36,7 +39,7 @@ local function getNearestZone()
     if not root then return nil end
 
     for _, folder in ipairs(Map3:GetChildren()) do
-        local zone = folder:FindFirstChild("INTERACT", true) and folder.INTERACT:FindFirstChild("BREAK_ZONES", true) and folder.INTERACT.BREAK_ZONES:FindFirstChild("BREAK_ZONE")
+        local zone = folder:FindFirstChild("BREAK_ZONE", true)
         if zone then
             local d = (zone.Position - root.Position).Magnitude
             if d < dist then
@@ -49,9 +52,10 @@ local function getNearestZone()
 end
 
 task.spawn(function()
-    log("Скрипт готов к работе.")
+    log("Автономный модуль запущен.")
     while true do
         if getgenv().AdvancedFarmActive then
+            -- ПРИОРИТЕТ: сначала залоченная зона, если её нет — ближайшая
             local targetZone = getgenv().LockedZone or getNearestZone()
             
             if targetZone and #petIds > 0 then
@@ -59,18 +63,23 @@ task.spawn(function()
                 local targets = {}
                 local allBreakables = breakables:GetChildren()
                 
+                -- Собираем объекты в радиусе зоны
                 for i = 1, #allBreakables do
                     local obj = allBreakables[i]
                     local part = obj:IsA("BasePart") and obj or obj:FindFirstChildWhichIsA("BasePart")
                     
                     if part then
-                        if (part.Position - zonePos).Magnitude <= 85 then
+                        local pPos = part.Position
+                        local dx, dy, dz = pPos.X - zonePos.X, pPos.Y - zonePos.Y, pPos.Z - zonePos.Z
+                        -- Радиус 85 вокруг центра зоны
+                        if (dx*dx + dy*dy + dz*dz) <= 85^2 then 
                             table.insert(targets, obj.Name)
                         end
                     end
                     if #targets >= 40 then break end 
                 end
 
+                -- Если есть что бить — отправляем петов
                 if #targets > 0 then
                     local attackData = {}
                     for i = 1, #petIds do
@@ -80,11 +89,11 @@ task.spawn(function()
                 end
             end
         end
-        task.wait(0.1)
+        task.wait(0.1) -- Оптимальная задержка
     end
 end)
 
 return function(state)
     getgenv().AdvancedFarmActive = state
-    log(state and "Фарм запущен" or "Фарм остановлен")
+    log(state and "ВКЛЮЧЕН" or "ВЫКЛЮЧЕН")
 end
