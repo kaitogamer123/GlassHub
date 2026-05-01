@@ -24,7 +24,6 @@ updatePetList()
 petsFolder.ChildAdded:Connect(updatePetList)
 petsFolder.ChildRemoved:Connect(updatePetList)
 
--- Поиск активного мира
 local function getActiveMapContainer()
     local containers = {"Map", "Map2", "Map3", "Map4", "Map5"}
     for _, name in ipairs(containers) do
@@ -63,8 +62,8 @@ task.spawn(function()
             
             if target and #petIds > 0 then
                 local zonePos = target.Position
-                -- Берем радиус на основе размера BREAK_ZONE (половина самой большой стороны + запас)
-                local radius = (math.max(target.Size.X, target.Size.Z) / 2) + 5
+                -- Увеличиваем радиус: берем половину максимальной стороны и накидываем 15 единиц для уверенности
+                local radius = (math.max(target.Size.X, target.Size.Z) / 2) + 15
                 local radiusSq = radius * radius
                 
                 local targets = {}
@@ -76,11 +75,11 @@ task.spawn(function()
                     
                     if p then
                         local pPos = p.Position
+                        -- Считаем дистанцию ТОЛЬКО по X и Z (плоскость), игнорируя высоту Y
                         local dx = pPos.X - zonePos.X
-                        local dy = pPos.Y - zonePos.Y
                         local dz = pPos.Z - zonePos.Z
-                        -- Старая добрая проверка по радиусу, но радиус теперь умный
-                        if (dx*dx + dy*dy + dz*dz) <= radiusSq then
+                        
+                        if (dx*dx + dz*dz) <= radiusSq then
                             table.insert(targets, obj.Name)
                         end
                     end
@@ -96,7 +95,7 @@ task.spawn(function()
                 end
             end
         end
-        task.wait(0.15)
+        task.wait(0.1) -- Чуть быстрее отклик
     end
 end)
 
