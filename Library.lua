@@ -475,6 +475,119 @@ function Library:CreateWindow(hubName)
 			UpdateSlider()
 			if Library.Config[text] then task.spawn(function() callback(value) end) end
 		end
+		function TabLogic:AddDropdown(side, text, list, default, callback)
+			local column = (side == "Left" and LeftCol or RightCol)
+			local DropdownData = {Value = default or list[1], Options = list, Open = false}
+			
+			local DropdownFrame = Instance.new("Frame")
+			DropdownFrame.Size = UDim2.new(1, 0, 0, 42)
+			DropdownFrame.BackgroundTransparency = 1
+			DropdownFrame.Parent = column
+
+			local Label = Instance.new("TextLabel")
+			Label.Size = UDim2.new(1, -10, 0, 20)
+			Label.Position = UDim2.new(0, 5, 0, 0)
+			Label.BackgroundTransparency = 1
+			Label.Text = text
+			Label.TextColor3 = Color3.fromRGB(180, 180, 180)
+			Label.TextSize = 13
+			Label.Font = Enum.Font.SourceSans
+			Label.TextXAlignment = Enum.TextXAlignment.Left
+			Label.Parent = DropdownFrame
+
+			local MainBtn = Instance.new("TextButton")
+			MainBtn.Size = UDim2.new(1, -10, 0, 18)
+			MainBtn.Position = UDim2.new(0, 5, 0, 22)
+			MainBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+			MainBtn.BorderSizePixel = 0
+			MainBtn.Text = "  " .. DropdownData.Value
+			MainBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+			MainBtn.TextSize = 12
+			MainBtn.Font = Enum.Font.SourceSans
+			MainBtn.TextXAlignment = Enum.TextXAlignment.Left
+			MainBtn.AutoButtonColor = false
+			MainBtn.Parent = DropdownFrame
+
+			local MainCorner = Instance.new("UICorner")
+			MainCorner.CornerRadius = UDim.new(0, 4)
+			MainCorner.Parent = MainBtn
+
+			local Arrow = Instance.new("TextLabel")
+			Arrow.Size = UDim2.new(0, 20, 1, 0)
+			Arrow.Position = UDim2.new(1, -20, 0, 0)
+			Arrow.BackgroundTransparency = 1
+			Arrow.Text = "▼"
+			Arrow.TextColor3 = Color3.fromRGB(150, 150, 150)
+			Arrow.TextSize = 10
+			Arrow.Parent = MainBtn
+
+			local OptionContainer = Instance.new("Frame")
+			OptionContainer.Size = UDim2.new(1, 0, 0, 0)
+			OptionContainer.Position = UDim2.new(0, 0, 1, 2)
+			OptionContainer.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+			OptionContainer.BorderSizePixel = 0
+			OptionContainer.ClipsDescendants = true
+			OptionContainer.ZIndex = 20
+			OptionContainer.Visible = false
+			OptionContainer.Parent = MainBtn
+
+			local OptionLayout = Instance.new("UIListLayout")
+			OptionLayout.Parent = OptionContainer
+			OptionLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+			local OptionStroke = Instance.new("UIStroke")
+			OptionStroke.Thickness = 1
+			OptionStroke.Color = Color3.fromRGB(60, 60, 60)
+			OptionStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+			OptionStroke.Parent = OptionContainer
+
+			local function RefreshOptions()
+				for _, v in pairs(OptionContainer:GetChildren()) do
+					if v:IsA("TextButton") then v:Destroy() end
+				end
+
+				for i, option in pairs(list) do
+					local Opt = Instance.new("TextButton")
+					Opt.Size = UDim2.new(1, 0, 0, 20)
+					Opt.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+					Opt.BorderSizePixel = 0
+					Opt.Text = "  " .. option
+					Opt.TextColor3 = Color3.fromRGB(180, 180, 180)
+					Opt.TextSize = 12
+					Opt.Font = Enum.Font.SourceSans
+					Opt.TextXAlignment = Enum.TextXAlignment.Left
+					Opt.ZIndex = 21
+					Opt.Parent = OptionContainer
+
+					Opt.MouseButton1Click:Connect(function()
+						DropdownData.Value = option
+						MainBtn.Text = "  " .. option
+						DropdownData.Open = false
+						TweenService:Create(OptionContainer, TweenInfo.new(0.3), {Size = UDim2.new(1, 0, 0, 0)}):Play()
+						TweenService:Create(Arrow, TweenInfo.new(0.3), {Rotation = 0}):Play()
+						task.wait(0.3)
+						OptionContainer.Visible = false
+						callback(option)
+					end)
+				end
+			end
+
+			MainBtn.MouseButton1Click:Connect(function()
+				DropdownData.Open = not DropdownData.Open
+				if DropdownData.Open then
+					RefreshOptions()
+					OptionContainer.Visible = true
+					local targetSize = #list * 20
+					TweenService:Create(OptionContainer, TweenInfo.new(0.3, Enum.EasingStyle.Quart), {Size = UDim2.new(1, 0, 0, targetSize)}):Play()
+					TweenService:Create(Arrow, TweenInfo.new(0.3), {Rotation = 180}):Play()
+				else
+					TweenService:Create(OptionContainer, TweenInfo.new(0.3), {Size = UDim2.new(1, 0, 0, 0)}):Play()
+					TweenService:Create(Arrow, TweenInfo.new(0.3), {Rotation = 0}):Play()
+					task.wait(0.3)
+					OptionContainer.Visible = false
+				end
+			end)
+		end
 
         return TabLogic -- TabLogic теперь возвращается ПОСЛЕ всех функций
     end
