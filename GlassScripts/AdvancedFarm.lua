@@ -24,6 +24,7 @@ updatePetList()
 petsFolder.ChildAdded:Connect(updatePetList)
 petsFolder.ChildRemoved:Connect(updatePetList)
 
+-- Поиск активного мира
 local function getActiveMapContainer()
     local containers = {"Map", "Map2", "Map3", "Map4", "Map5"}
     for _, name in ipairs(containers) do
@@ -33,7 +34,8 @@ local function getActiveMapContainer()
     return nil
 end
 
-local function getNearestZone()
+-- Теперь ищем не одну зону, а ПАПКУ локации, которая ближе всего
+local function getNearestZoneFolder()
     local mapContainer = getActiveMapContainer()
     if not mapContainer then return nil end
 
@@ -43,12 +45,13 @@ local function getNearestZone()
     if not root then return nil end
 
     for _, folder in ipairs(mapContainer:GetChildren()) do
+        -- Ориентируемся на положение папки или её первой зоны
         local zone = folder:FindFirstChild("BREAK_ZONE", true)
         if zone then
             local d = (zone.Position - root.Position).Magnitude
             if d < dist then
                 dist = d
-                closest = zone
+                closest = folder -- Возвращаем всю папку локации
             end
         end
     end
@@ -58,29 +61,43 @@ end
 task.spawn(function()
     while true do
         if getgenv().Glass_Adv_Active then
-            local target = getgenv().Glass_Adv_Target or getNearestZone()
+            -- Целью теперь может быть либо конкретный парт (Locked), либо папка локации
+            local targetObj = getgenv().Glass_Adv_Target
+            local targetFolder = not targetObj and getNearestZoneFolder()
             
-            if target and #petIds > 0 then
-                local zonePos = target.Position
-                -- Увеличиваем радиус: берем половину максимальной стороны и накидываем 15 единиц для уверенности
-                local radius = (math.max(target.Size.X, target.Size.Z) / 2) + 15
-                local radiusSq = radius * radius
-                
+            if (targetObj or targetFolder) and #petIds > 0 then
                 local targets = {}
                 local objects = breakables:GetChildren()
                 
+                -- Собираем все BREAK_ZONE в этой локации
+                local activeZones = {}
+                if targetObj then
+                    table.insert(activeZones, targetObj)
+                else
+                    for _, v in ipairs(targetFolder:GetDescendants()) do
+                        if v.Name == "BREAK_ZONE" and v:IsA("BasePart") then
+                            table.insert(activeZones, v)
+                        end
+                    end
+                end
+
                 for i = 1, #objects do
                     local obj = objects[i]
                     local p = obj:IsA("BasePart") and obj or obj:FindFirstChildWhichIsA("BasePart")
                     
                     if p then
                         local pPos = p.Position
-                        -- Считаем дистанцию ТОЛЬКО по X и Z (плоскость), игнорируя высоту Y
-                        local dx = pPos.X - zonePos.X
-                        local dz = pPos.Z - zonePos.Z
-                        
-                        if (dx*dx + dz*dz) <= radiusSq then
-                            table.insert(targets, obj.Name)
+                        -- Проверяем монетку против ВСЕХ зон в этой локации
+                        for _, zone in ipairs(activeZones) do
+                            local zPos = zone.Position
+                            local radius = (math.max(zone.Size.X, zone.Size.Z) / 2) + 15
+                            local dx = pPos.X - zPos.X
+                            local dz = pPos.Z - zPos.Z
+                            
+                            if (dx*dx + dz*dz) <= (radius * radius) then
+                                table.insert(targets, obj.Name)
+                                break -- Нашли зону, дальше не проверяем для этой монетки
+                            end
                         end
                     end
                     if #targets >= 40 then break end 
@@ -95,7 +112,7 @@ task.spawn(function()
                 end
             end
         end
-        task.wait(0.1) -- Чуть быстрее отклик
+        task.wait(0.12)
     end
 end)
 
