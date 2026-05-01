@@ -1,5 +1,5 @@
 local Library = {}
-local Library.Config = {}
+Library.Config = {}
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 
