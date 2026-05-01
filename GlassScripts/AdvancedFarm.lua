@@ -1,57 +1,41 @@
--- GlassScripts/AdvancedFarm.lua
-local Network = game:GetService("ReplicatedStorage"):WaitForChild("Network")
-local Library = require(game:GetService("ReplicatedStorage").Library)
-local Breakables = game:GetService("Workspace"):WaitForChild("__THINGS"):WaitForChild("Breakables")
+local RS = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local Network = RS:WaitForChild("Network"):WaitForChild("Breakables_JoinPetBulk")
+local player = Players.LocalPlayer
+local things = workspace:WaitForChild("__THINGS")
+local breakables = things.Breakables
+local petsFolder = things.Pets
 
--- Функция для динамического поиска папки с зонами (Map1, Map2, Map3...)
-local function getZonesFolder()
-    for _, m in pairs(game.Workspace:GetChildren()) do
-        if m.Name:match("^Map") then
-            -- Прочесываем локации внутри Мапы в поиске INTERACT.BREAK_ZONES
-            for _, area in pairs(m:GetChildren()) do
-                local bz = area:FindFirstChild("INTERACT") and area.INTERACT:FindFirstChild("BREAK_ZONES")
-                if bz then
-                    return bz
-                end
-            end
+-- Путь к зонам
+local ZonesPath = workspace:WaitForChild("Map3"):WaitForChild("201 | Prison Block"):WaitForChild("INTERACT"):WaitForChild("BREAK_ZONES")
+
+local petIds = {}
+getgenv().AdvancedFarmActive = false
+getgenv().LockedZone = nil 
+
+local function updatePetList()
+    table.clear(petIds)
+    for _, pet in ipairs(petsFolder:GetChildren()) do
+        if pet.Name:match("^%d+$") then
+            table.insert(petIds, pet.Name)
         end
     end
-    return nil
 end
 
-local Zones = getZonesFolder()
+updatePetList()
+petsFolder.ChildAdded:Connect(updatePetList)
+petsFolder.ChildRemoved:Connect(updatePetList)
 
--- Обновляем ссылку на зоны раз в 5 секунд (на случай перехода в другой мир)
-task.spawn(function()
-    while task.wait(5) do
-        Zones = getZonesFolder()
-    end
-end)
-
--- Получаем список UID твоих петов
-local function getMyPets()
-    local pets = {}
-    local equipped = Library.PetCmds.GetEquipped()
-    for _, pet in pairs(equipped) do
-        table.insert(pets, pet.uid)
-    end
-    return pets
-end
-
--- Поиск ближайшей зоны для фарма
-local function getTargetZone()
-    if getgenv().FarmMode == "Fixed" and getgenv().FixedZonePos then 
-        return {Position = getgenv().FixedZonePos} 
-    end
-    
-    local char = game.Players.LocalPlayer.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") or not Zones then return nil end
-    
+-- Поиск ближайшей зоны к игроку
+local function getNearestZone()
     local closest, dist = nil, math.huge
-    for _, zone in pairs(Zones:GetChildren()) do
-        -- В Map3 зоны — это сами парты внутри BREAK_ZONES
-        if zone:IsA("BasePart") then
-            local d = (char.HumanoidRootPart.Position - zone.Position).Magnitude
+    local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+    if not root then return nil end
+
+    for _, zone in ipairs(ZonesPath:GetChildren()) do
+        local part = zone:IsA("BasePart") and zone or zone:FindFirstChildWhichIsA("BasePart")
+        if part then
+            local d = (part.Position - root.Position).Magnitude
             if d < dist then
                 dist = d
                 closest = zone
@@ -61,38 +45,49 @@ local function getTargetZone()
     return closest
 end
 
--- Основной цикл фарма
 task.spawn(function()
-    print("✅ Advanced Farm Script Started")
-    while task.wait(0.1) do
-        if getgenv().AdvancedFarmEnabled then
-            local targetZone = getTargetZone()
-            local pets = getMyPets()
+    while true do
+        if getgenv().AdvancedFarmActive then
+            -- Если зона не залочена, ищем ближайшую
+            local targetZone = getgenv().LockedZone or getNearestZone()
             
-            if targetZone and #pets > 0 then
-                local args = {}
-                local count = 0
+            if targetZone and #petIds > 0 then
+                local zonePart = targetZone:IsA("BasePart") and targetZone or targetZone:FindFirstChildWhichIsA("BasePart")
+                local zonePos = zonePart.Position
+                local targets = {}
+                local radiusSq = 75^2 
                 
-                for _, obj in pairs(Breakables:GetChildren()) do
-                    local pos = obj:GetAttribute("ParentPosition") or (obj:IsA("BasePart") and obj.Position)
+                local allBreakables = breakables:GetChildren()
+                for i = 1, #allBreakables do
+                    local obj = allBreakables[i]
+                    local part = obj:IsA("BasePart") and obj or obj:FindFirstChildWhichIsA("BasePart")
                     
-                    if pos then
-                        local diff = (pos - targetZone.Position)
-                        -- Радиус захвата объектов в зоне
-                        if math.abs(diff.X) < 50 and math.abs(diff.Z) < 50 then
-                            for _, petUID in pairs(pets) do
-                                args[obj.Name] = petUID
-                            end
-                            count = count + 1
+                    if part then
+                        local pPos = part.Position
+                        local dx = pPos.X - zonePos.X
+                        local dy = pPos.Y - zonePos.Y
+                        local dz = pPos.Z - zonePos.Z
+                        if (dx*dx + dy*dy + dz*dz) <= radiusSq then
+                            table.insert(targets, obj.Name)
                         end
                     end
-                    if count > 50 then break end -- Оптимизация, чтобы не кикнуло
+                    if #targets >= 40 then break end 
                 end
-                
-                if next(args) then
-                    Network.Breakables_JoinPetBulk:FireServer({args})
+
+                if #targets > 0 then
+                    local attackData = {}
+                    for i = 1, #petIds do
+                        attackData[petIds[i]] = targets[((i - 1) % #targets) + 1]
+                    end
+                    Network:FireServer(attackData)
                 end
             end
         end
+        task.wait(0.1)
     end
 end)
+
+-- Функция-переключатель для хаба
+return function(state)
+    getgenv().AdvancedFarmActive = state
+end
