@@ -6,52 +6,50 @@ return function()
 
     local ReplicatedStorage = game:GetService("ReplicatedStorage")
     local EggCmds = require(ReplicatedStorage.Library.Client.EggCmds)
+    local EggsUtil = require(ReplicatedStorage.Library.Util.EggsUtil)
     local lp = game.Players.LocalPlayer
 
     -- Функция поиска ближайшего яйца
     local function getNearestEgg()
         local nearestData = nil
-        local minDist = 35 -- Радиус поиска
+        local minDist = 40 -- Радиус поиска
         local root = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
         
         if not root then return nil end
         local things = workspace:WaitForChild("__THINGS")
         
-        -- 1. СКАНИРУЕМ ИВЕНТОВЫЕ (CustomEggs)
-        local customFolder = things:FindFirstChild("CustomEggs")
-        if customFolder then
-            for _, egg in pairs(customFolder:GetChildren()) do
-                -- Проверяем, что это МОДЕЛЬ (игнорируем Highlight)
-                if egg:IsA("Model") then
-                    local dist = (egg:GetPivot().Position - root.Position).Magnitude
-                    if dist < minDist then
-                        minDist = dist
-                        nearestData = {id = egg.Name, type = "Custom"}
-                    end
-                end
-            end
-        end
+        -- Список всех возможных папок с яйцами (Eggs, ZoneEggs, CustomEggs)
+        local paths = {
+            things:FindFirstChild("Eggs"),
+            things:FindFirstChild("ZoneEggs"),
+            things:FindFirstChild("CustomEggs")
+        }
 
-        -- 2. СКАНИРУЕМ ОБЫЧНЫЕ (ZoneEggs)
-        local zoneFolder = things:FindFirstChild("ZoneEggs")
-        if zoneFolder and not nearestData then
-            -- Проходимся по всем мирам и подпапкам
-            for _, world in pairs(zoneFolder:GetChildren()) do
-                for _, egg in pairs(world:GetChildren()) do
-                    if egg:IsA("Model") then
-                        local dist = (egg:GetPivot().Position - root.Position).Magnitude
+        for _, folder in pairs(paths) do
+            if folder then
+                -- Для ZoneEggs и Eggs используем глубокий поиск миров
+                local items = (folder.Name == "CustomEggs") and folder:GetChildren() or folder:GetDescendants()
+                
+                for _, item in pairs(items) do
+                    -- Проверяем, что это модель и у неё есть точка привязки
+                    if item:IsA("Model") and (item:FindFirstChild("Main") or item:FindFirstChild("Center") or item.PrimaryPart) then
+                        local dist = (item:GetPivot().Position - root.Position).Magnitude
+                        
                         if dist < minDist then
-                            -- Пробуем достать ID через EggsUtil по номеру из названия (например, из "252 - Egg")
-                            local eggNumber = tonumber(egg.Name:match("^%d+"))
-                            local eggId = egg.Name -- По умолчанию имя модели
+                            local eggId = item.Name
+                            local eggType = (folder.Name == "CustomEggs") and "Custom" or "Normal"
                             
-                            if eggNumber then
-                                local data = require(game.ReplicatedStorage.Library.Util.EggsUtil).GetByNumber(eggNumber)
-                                if data then eggId = data._id end
+                            -- Если это обычное яйцо, пробуем достать технический ID через EggsUtil
+                            if eggType == "Normal" then
+                                local eggNumber = tonumber(item.Name:match("^%d+"))
+                                if eggNumber then
+                                    local data = EggsUtil.GetByNumber(eggNumber)
+                                    if data then eggId = data._id end
+                                end
                             end
 
                             minDist = dist
-                            nearestData = {id = eggId, type = "Normal"}
+                            nearestData = {id = eggId, type = eggType}
                         end
                     end
                 end
@@ -72,7 +70,7 @@ return function()
 
                     pcall(function()
                         if egg.type == "Custom" then
-                            -- Сигнал для ИВЕНТОВЫХ яиц
+                            -- Сигнал для ИВЕНТОВЫХ яиц (твой рабочий вариант)
                             ReplicatedStorage.Network.CustomEggs_Hatch:InvokeServer(egg.id, maxAmount)
                         else
                             -- Сигнал для ОБЫЧНЫХ яиц
