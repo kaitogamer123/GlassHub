@@ -1,4 +1,6 @@
 local RS = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 local Network = RS:WaitForChild("Network"):WaitForChild("Breakables_JoinPetBulk")
 local player = game:GetService("Players").LocalPlayer
 local things = workspace:WaitForChild("__THINGS")
@@ -7,7 +9,7 @@ local petsFolder = things:WaitForChild("Pets")
 
 getgenv().EventFarmActive = false
 getgenv().EventLockedPos = nil 
-getgenv().EventFarmRadius = 50 -- Стандартный радиус
+getgenv().EventFarmRadius = 50 
 
 local petIds = {}
 local lastVisualCircle = nil
@@ -25,38 +27,58 @@ updatePetList()
 petsFolder.ChildAdded:Connect(updatePetList)
 petsFolder.ChildRemoved:Connect(updatePetList)
 
--- Функция создания визуального круга (цилиндра)
+-- Функция создания визуального круга с эффектами
 local function showVisualRadius()
     if lastVisualCircle then lastVisualCircle:Destroy() end
-
-    local char = player.Character
-    local root = char and char:FindFirstChild("HumanoidRootPart")
-    local pos = getgenv().EventLockedPos or (root and root.Position)
-    
-    if not pos then return end
 
     local circle = Instance.new("Part")
     circle.Name = "GlassHub_VisualRadius"
     circle.Shape = Enum.PartType.Cylinder
     circle.Anchored = true
     circle.CanCollide = false
-    circle.Transparency = 0.7 -- Прозрачность 30% видимости
-    circle.Color = Color3.fromRGB(255, 0, 0)
-    circle.Material = Enum.Material.SmoothPlastic
-    -- Диаметр = Радиус * 2
-    local diameter = getgenv().EventFarmRadius * 2
-    circle.Size = Vector3.new(0.5, diameter, diameter)
-    -- Поворачиваем цилиндр, чтобы он лежал как круг на земле
-    circle.CFrame = CFrame.new(pos) * CFrame.Angles(0, 0, math.rad(90))
-    circle.Parent = workspace
+    circle.Transparency = 1 -- Начинаем с полной прозрачности
+    circle.Color = Color3.fromRGB(80, 120, 255) -- Синий под стиль GlassHub
+    circle.Material = Enum.Material.Neon
     
+    local diameter = getgenv().EventFarmRadius * 2
+    circle.Size = Vector3.new(0.2, diameter, diameter)
+    circle.Parent = workspace
     lastVisualCircle = circle
 
-    task.delay(3, function()
-        if circle and circle.Parent then circle:Destroy() end
+    -- Анимация появления (Fade In)
+    TweenService:Create(circle, TweenInfo.new(0.5), {Transparency = 0.7}):Play()
+
+    -- Логика следования и удаления
+    local startTime = tick()
+    local connection
+    connection = RunService.RenderStepped:Connect(function()
+        if not circle or not circle.Parent then 
+            connection:Disconnect() 
+            return 
+        end
+
+        -- Если позиция не залокана, круг двигается за игроком
+        local char = player.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        local currentPos = getgenv().EventLockedPos or (root and root.Position)
+
+        if currentPos then
+            circle.CFrame = CFrame.new(currentPos - Vector3.new(0, 2.5, 0)) * CFrame.Angles(0, 0, math.rad(90))
+        end
+
+        -- Через 3 секунды начинаем исчезновение
+        if tick() - startTime > 3 then
+            connection:Disconnect()
+            local fadeOut = TweenService:Create(circle, TweenInfo.new(0.5), {Transparency = 1, Size = Vector3.new(0,0,0)})
+            fadeOut:Play()
+            fadeOut.Completed:Connect(function()
+                circle:Destroy()
+            end)
+        end
     end)
 end
 
+-- Основной цикл фарма
 task.spawn(function()
     while true do
         if getgenv().EventFarmActive then
@@ -91,7 +113,7 @@ task.spawn(function()
                 end
             end
         end
-        task.wait(0.12)
+        task.wait(0.1)
     end
 end)
 
@@ -103,11 +125,9 @@ return {
         local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
         if root then
             getgenv().EventLockedPos = root.Position
-            print("🧊 [Event]: Точка зафиксирована")
         end
     end,
     Reset = function()
         getgenv().EventLockedPos = nil
-        print("🧊 [Event]: Точка сброшена")
     end
 }
