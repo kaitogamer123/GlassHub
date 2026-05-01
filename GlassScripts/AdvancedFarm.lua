@@ -3,16 +3,16 @@ local Players = game:GetService("Players")
 local Network = RS:WaitForChild("Network"):WaitForChild("Breakables_JoinPetBulk")
 local player = Players.LocalPlayer
 local things = workspace:WaitForChild("__THINGS")
-local breakables = things.Breakables
-local petsFolder = things.Pets
+local breakables = things:WaitForChild("Breakables")
+local petsFolder = things:WaitForChild("Pets")
 
--- Путь к зонам
-local ZonesPath = workspace:WaitForChild("Map3"):WaitForChild("201 | Prison Block"):WaitForChild("INTERACT"):WaitForChild("BREAK_ZONES")
+local Map3 = workspace:WaitForChild("Map3")
 
 local petIds = {}
 getgenv().AdvancedFarmActive = false
 getgenv().LockedZone = nil 
 
+-- Обновление списка питомцев
 local function updatePetList()
     table.clear(petIds)
     for _, pet in ipairs(petsFolder:GetChildren()) do
@@ -26,16 +26,20 @@ updatePetList()
 petsFolder.ChildAdded:Connect(updatePetList)
 petsFolder.ChildRemoved:Connect(updatePetList)
 
--- Поиск ближайшей зоны к игроку
+-- Поиск ближайшей зоны во ВСЕХ папках Map3
 local function getNearestZone()
     local closest, dist = nil, math.huge
     local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
     if not root then return nil end
 
-    for _, zone in ipairs(ZonesPath:GetChildren()) do
-        local part = zone:IsA("BasePart") and zone or zone:FindFirstChildWhichIsA("BasePart")
-        if part then
-            local d = (part.Position - root.Position).Magnitude
+    for _, folder in ipairs(Map3:GetChildren()) do
+        -- Ищем путь: Папка -> INTERACT -> BREAK_ZONES -> BREAK_ZONE
+        local interact = folder:FindFirstChild("INTERACT")
+        local zones = interact and interact:FindFirstChild("BREAK_ZONES")
+        local zone = zones and zones:FindFirstChild("BREAK_ZONE")
+
+        if zone then
+            local d = (zone.Position - root.Position).Magnitude
             if d < dist then
                 dist = d
                 closest = zone
@@ -47,15 +51,13 @@ end
 
 task.spawn(function()
     while true do
-        if getgenv().AdvancedFarmActive then
-            -- Если зона не залочена, ищем ближайшую
+        -- Условие: включен AdvancedFarm И функция InGameFarm активна
+        if getgenv().AdvancedFarmActive and _G.InGameFarmRunning then
             local targetZone = getgenv().LockedZone or getNearestZone()
             
             if targetZone and #petIds > 0 then
-                local zonePart = targetZone:IsA("BasePart") and targetZone or targetZone:FindFirstChildWhichIsA("BasePart")
-                local zonePos = zonePart.Position
+                local zonePos = targetZone.Position
                 local targets = {}
-                local radiusSq = 75^2 
                 
                 local allBreakables = breakables:GetChildren()
                 for i = 1, #allBreakables do
@@ -63,11 +65,10 @@ task.spawn(function()
                     local part = obj:IsA("BasePart") and obj or obj:FindFirstChildWhichIsA("BasePart")
                     
                     if part then
+                        -- Проверка дистанции от центра найденной зоны
                         local pPos = part.Position
-                        local dx = pPos.X - zonePos.X
-                        local dy = pPos.Y - zonePos.Y
-                        local dz = pPos.Z - zonePos.Z
-                        if (dx*dx + dy*dy + dz*dz) <= radiusSq then
+                        local dx, dy, dz = pPos.X - zonePos.X, pPos.Y - zonePos.Y, pPos.Z - zonePos.Z
+                        if (dx*dx + dy*dy + dz*dz) <= 80^2 then -- Радиус 80
                             table.insert(targets, obj.Name)
                         end
                     end
@@ -87,7 +88,6 @@ task.spawn(function()
     end
 end)
 
--- Функция-переключатель для хаба
 return function(state)
     getgenv().AdvancedFarmActive = state
 end
