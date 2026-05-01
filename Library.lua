@@ -475,9 +475,18 @@ function Library:CreateWindow(hubName)
 			UpdateSlider()
 			if Library.Config[text] then task.spawn(function() callback(value) end) end
 		end
+
 		function TabLogic:AddDropdown(side, text, list, default, callback)
 			local column = (side == "Left" and LeftCol or RightCol)
-			local DropdownData = {Value = default or list[1], Options = list, Open = false}
+			
+			-- Фикс ошибки: если default не указан, берем первый элемент из списка или текст "None"
+			local initialValue = default
+			if not initialValue and type(list) == "table" then
+				initialValue = list[1]
+			end
+			initialValue = initialValue or "None"
+
+			local DropdownData = {Value = initialValue, Options = list, Open = false}
 			
 			local DropdownFrame = Instance.new("Frame")
 			DropdownFrame.Size = UDim2.new(1, 0, 0, 42)
@@ -500,7 +509,7 @@ function Library:CreateWindow(hubName)
 			MainBtn.Position = UDim2.new(0, 5, 0, 22)
 			MainBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 			MainBtn.BorderSizePixel = 0
-			MainBtn.Text = "  " .. DropdownData.Value
+			MainBtn.Text = "  " .. tostring(DropdownData.Value)
 			MainBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
 			MainBtn.TextSize = 12
 			MainBtn.Font = Enum.Font.SourceSans
@@ -527,7 +536,7 @@ function Library:CreateWindow(hubName)
 			OptionContainer.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 			OptionContainer.BorderSizePixel = 0
 			OptionContainer.ClipsDescendants = true
-			OptionContainer.ZIndex = 20
+			OptionContainer.ZIndex = 50 -- Поднял ZIndex, чтобы список был поверх всего
 			OptionContainer.Visible = false
 			OptionContainer.Parent = MainBtn
 
@@ -546,22 +555,22 @@ function Library:CreateWindow(hubName)
 					if v:IsA("TextButton") then v:Destroy() end
 				end
 
-				for i, option in pairs(list) do
+				for _, option in pairs(list) do
 					local Opt = Instance.new("TextButton")
 					Opt.Size = UDim2.new(1, 0, 0, 20)
 					Opt.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 					Opt.BorderSizePixel = 0
-					Opt.Text = "  " .. option
+					Opt.Text = "  " .. tostring(option)
 					Opt.TextColor3 = Color3.fromRGB(180, 180, 180)
 					Opt.TextSize = 12
 					Opt.Font = Enum.Font.SourceSans
 					Opt.TextXAlignment = Enum.TextXAlignment.Left
-					Opt.ZIndex = 21
+					Opt.ZIndex = 51
 					Opt.Parent = OptionContainer
 
 					Opt.MouseButton1Click:Connect(function()
 						DropdownData.Value = option
-						MainBtn.Text = "  " .. option
+						MainBtn.Text = "  " .. tostring(option)
 						DropdownData.Open = false
 						TweenService:Create(OptionContainer, TweenInfo.new(0.3), {Size = UDim2.new(1, 0, 0, 0)}):Play()
 						TweenService:Create(Arrow, TweenInfo.new(0.3), {Rotation = 0}):Play()
@@ -587,8 +596,12 @@ function Library:CreateWindow(hubName)
 					OptionContainer.Visible = false
 				end
 			end)
+
+			return DropdownData
 		end
 
+
+		
         return TabLogic -- TabLogic теперь возвращается ПОСЛЕ всех функций
     end
 
