@@ -479,14 +479,16 @@ function Library:CreateWindow(hubName)
 		function TabLogic:AddDropdown(side, text, list, default, callback)
 			local column = (side == "Left" and LeftCol or RightCol)
 			
-			-- Фикс ошибки: если default не указан, берем первый элемент из списка или текст "None"
-			local initialValue = default
-			if not initialValue and type(list) == "table" then
-				initialValue = list[1]
+			-- Проверка входных данных, чтобы не было ошибки "got table"
+			local listOptions = (type(list) == "table" and list) or {"None"}
+			local selectedValue = default
+			
+			-- Если дефолт не указан или это таблица, берем первый элемент из списка
+			if type(selectedValue) == "table" or not selectedValue then
+				selectedValue = listOptions[1]
 			end
-			initialValue = initialValue or "None"
 
-			local DropdownData = {Value = initialValue, Options = list, Open = false}
+			local DropdownData = {Value = selectedValue, Options = listOptions, Open = false}
 			
 			local DropdownFrame = Instance.new("Frame")
 			DropdownFrame.Size = UDim2.new(1, 0, 0, 42)
@@ -536,7 +538,7 @@ function Library:CreateWindow(hubName)
 			OptionContainer.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 			OptionContainer.BorderSizePixel = 0
 			OptionContainer.ClipsDescendants = true
-			OptionContainer.ZIndex = 50 -- Поднял ZIndex, чтобы список был поверх всего
+			OptionContainer.ZIndex = 100 -- Максимальный приоритет видимости
 			OptionContainer.Visible = false
 			OptionContainer.Parent = MainBtn
 
@@ -555,7 +557,7 @@ function Library:CreateWindow(hubName)
 					if v:IsA("TextButton") then v:Destroy() end
 				end
 
-				for _, option in pairs(list) do
+				for _, option in pairs(DropdownData.Options) do
 					local Opt = Instance.new("TextButton")
 					Opt.Size = UDim2.new(1, 0, 0, 20)
 					Opt.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
@@ -565,7 +567,7 @@ function Library:CreateWindow(hubName)
 					Opt.TextSize = 12
 					Opt.Font = Enum.Font.SourceSans
 					Opt.TextXAlignment = Enum.TextXAlignment.Left
-					Opt.ZIndex = 51
+					Opt.ZIndex = 101
 					Opt.Parent = OptionContainer
 
 					Opt.MouseButton1Click:Connect(function()
@@ -586,7 +588,7 @@ function Library:CreateWindow(hubName)
 				if DropdownData.Open then
 					RefreshOptions()
 					OptionContainer.Visible = true
-					local targetSize = #list * 20
+					local targetSize = #DropdownData.Options * 20
 					TweenService:Create(OptionContainer, TweenInfo.new(0.3, Enum.EasingStyle.Quart), {Size = UDim2.new(1, 0, 0, targetSize)}):Play()
 					TweenService:Create(Arrow, TweenInfo.new(0.3), {Rotation = 180}):Play()
 				else
