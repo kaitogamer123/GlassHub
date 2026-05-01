@@ -35,19 +35,28 @@ return function()
         -- 2. СКАНИРУЕМ ОБЫЧНЫЕ (ZoneEggs)
         local zoneFolder = things:FindFirstChild("ZoneEggs")
         if zoneFolder and not nearestData then
+            -- Проходимся по всем мирам и подпапкам
             for _, world in pairs(zoneFolder:GetChildren()) do
                 for _, egg in pairs(world:GetChildren()) do
                     if egg:IsA("Model") then
                         local dist = (egg:GetPivot().Position - root.Position).Magnitude
                         if dist < minDist then
+                            -- Пробуем достать ID через EggsUtil по номеру из названия (например, из "252 - Egg")
+                            local eggNumber = tonumber(egg.Name:match("^%d+"))
+                            local eggId = egg.Name -- По умолчанию имя модели
+                            
+                            if eggNumber then
+                                local data = require(game.ReplicatedStorage.Library.Util.EggsUtil).GetByNumber(eggNumber)
+                                if data then eggId = data._id end
+                            end
+
                             minDist = dist
-                            nearestData = {id = egg.Name, type = "Normal"}
+                            nearestData = {id = eggId, type = "Normal"}
                         end
                     end
                 end
             end
         end
-        
         return nearestData
     end
 
