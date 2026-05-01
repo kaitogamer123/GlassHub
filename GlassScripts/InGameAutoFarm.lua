@@ -9,24 +9,6 @@ local function getActiveCmd()
     return s and res
 end
 
-task.spawn(function()
-    while true do
-        -- Убиваем старый цикл при обновлении
-        if getgenv().CurrentInGameID ~= scriptID then break end
-
-        if getgenv().ForceInGameFarm then
-            local CurrentCmd = getActiveCmd()
-            
-            if CurrentCmd then
-                -- Проверяем именно актуальную версию модуля
-                if not CurrentCmd.Active then
-                    pcall(function() CurrentCmd.Enable() end)
-                end
-            end
-        end
-        task.wait(1.5) -- Увеличил задержку, чтобы игра успела обновить поля
-    end
-end)
 
 return function(state)
     getgenv().ForceInGameFarm = state
