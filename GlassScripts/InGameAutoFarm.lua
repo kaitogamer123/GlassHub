@@ -1,34 +1,38 @@
--- Генерируем уникальный ID для каждой загрузки скрипта
-local scriptID = os.clock() 
-getgenv().CurrentInGameID = scriptID 
+local scriptID = os.clock()
+getgenv().CurrentInGameID = scriptID
 
-local Cmd = require(game:GetService("ReplicatedStorage").Library.Client.AutoFarmCmds)
-
--- Функция самого фарма
-local function runFarm(state)
-    getgenv().ForceInGameFarm = state
-    if state then
-        pcall(function() Cmd.Enable() end)
-    else
-        pcall(function() Cmd.Disable() end)
-    end
+-- Функция для получения СВЕЖЕЙ версии модуля
+local function getActiveCmd()
+    local s, res = pcall(function() 
+        return require(game:GetService("ReplicatedStorage").Library.Client.AutoFarmCmds) 
+    end)
+    return s and res
 end
 
--- Цикл с проверкой "свой-чужой"
 task.spawn(function()
     while true do
-        -- Если ID сменился (скрипт обновили) — этот цикл СТОПАЕТСЯ навсегда
-        if getgenv().CurrentInGameID ~= scriptID then 
-            break 
-        end
+        -- Убиваем старый цикл при обновлении
+        if getgenv().CurrentInGameID ~= scriptID then break end
 
         if getgenv().ForceInGameFarm then
-            if not Cmd.Active then
-                pcall(function() Cmd.Enable() end)
+            local CurrentCmd = getActiveCmd()
+            
+            if CurrentCmd then
+                -- Проверяем именно актуальную версию модуля
+                if not CurrentCmd.Active then
+                    pcall(function() CurrentCmd.Enable() end)
+                end
             end
         end
-        task.wait(1)
+        task.wait(1.5) -- Увеличил задержку, чтобы игра успела обновить поля
     end
 end)
 
-return runFarm
+return function(state)
+    getgenv().ForceInGameFarm = state
+    local CurrentCmd = getActiveCmd()
+    if CurrentCmd then
+        if state then pcall(function() CurrentCmd.Enable() end)
+        else pcall(function() CurrentCmd.Disable() end) end
+    end
+end
