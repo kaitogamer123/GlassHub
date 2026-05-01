@@ -24,17 +24,7 @@ updatePetList()
 petsFolder.ChildAdded:Connect(updatePetList)
 petsFolder.ChildRemoved:Connect(updatePetList)
 
--- Проверка вхождения в границы парта (зоны)
-local function isPointInZone(point, zonePart)
-    local size = zonePart.Size
-    local cframe = zonePart.CFrame
-    local relativePoint = cframe:PointToObjectSpace(point)
-    return math.abs(relativePoint.X) <= size.X/2 and
-           math.abs(relativePoint.Y) <= size.Y/2 and
-           math.abs(relativePoint.Z) <= size.Z/2
-end
-
--- Поиск активного мира (Map, Map2, Map3, Map4, Map5)
+-- Поиск активного мира
 local function getActiveMapContainer()
     local containers = {"Map", "Map2", "Map3", "Map4", "Map5"}
     for _, name in ipairs(containers) do
@@ -54,7 +44,6 @@ local function getNearestZone()
     if not root then return nil end
 
     for _, folder in ipairs(mapContainer:GetChildren()) do
-        -- Ищем BREAK_ZONE внутри папки локации
         local zone = folder:FindFirstChild("BREAK_ZONE", true)
         if zone then
             local d = (zone.Position - root.Position).Magnitude
@@ -70,10 +59,14 @@ end
 task.spawn(function()
     while true do
         if getgenv().Glass_Adv_Active then
-            -- Используем либо залоченную зону, либо ищем ближайшую
             local target = getgenv().Glass_Adv_Target or getNearestZone()
             
             if target and #petIds > 0 then
+                local zonePos = target.Position
+                -- Берем радиус на основе размера BREAK_ZONE (половина самой большой стороны + запас)
+                local radius = (math.max(target.Size.X, target.Size.Z) / 2) + 5
+                local radiusSq = radius * radius
+                
                 local targets = {}
                 local objects = breakables:GetChildren()
                 
@@ -82,8 +75,12 @@ task.spawn(function()
                     local p = obj:IsA("BasePart") and obj or obj:FindFirstChildWhichIsA("BasePart")
                     
                     if p then
-                        -- Проверка на нахождение объекта внутри границ зоны
-                        if isPointInZone(p.Position, target) then
+                        local pPos = p.Position
+                        local dx = pPos.X - zonePos.X
+                        local dy = pPos.Y - zonePos.Y
+                        local dz = pPos.Z - zonePos.Z
+                        -- Старая добрая проверка по радиусу, но радиус теперь умный
+                        if (dx*dx + dy*dy + dz*dz) <= radiusSq then
                             table.insert(targets, obj.Name)
                         end
                     end
