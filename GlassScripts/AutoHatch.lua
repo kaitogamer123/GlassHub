@@ -5,68 +5,57 @@
         
         local rootPos = root.Position
         local things = game.Workspace:WaitForChild("__THINGS")
+        local network = game:GetService("ReplicatedStorage"):WaitForChild("Network")
         
-        local nearestEggId = nil
+        local nearestEgg = nil
+        local eggType = nil -- "Normal" или "Custom"
         local minDist = 100 
 
-        -- Собираем все модели из обеих папок в одну таблицу для поиска
-        local allEggs = {}
+        -- 1. ИЩЕМ В ОБЫЧНЫХ (ZoneEggs)
         local zoneEggs = things:FindFirstChild("ZoneEggs")
-        local customEggs = things:FindFirstChild("CustomEggs")
-        
-        if zoneEggs then 
-            for _, v in pairs(zoneEggs:GetDescendants()) do 
-                if v:IsA("Model") then table.insert(allEggs, v) end 
-            end 
-        end
-        if customEggs then 
-            for _, v in pairs(customEggs:GetChildren()) do 
-                table.insert(allEggs, v) 
-            end 
-        end
-
-        for _, eggModel in pairs(allEggs) do
-            local part = eggModel:FindFirstChild("Main") or eggModel:FindFirstChild("Center") or eggModel:FindFirstChildWhichIsA("BasePart")
-            if part then
-                local dist = (rootPos - part.Position).Magnitude
-                if dist < minDist then
-                    -- Пытаемся вытащить данные через EggsUtil
-                    local data = nil
-                    local eggNumber = tonumber(eggModel.Name:match("^%d+"))
-                    
-                    if eggNumber then data = EggsUtil.GetByNumber(eggNumber) end
-                    if not data then data = EggsUtil.GetById(eggModel.Name) end
-                    if not data then data = EggsUtil.Get(eggModel.Name) end
-
-                    if data then
-                        minDist = dist
-                        nearestEggId = data._id
+        if zoneEggs then
+            for _, v in pairs(zoneEggs:GetDescendants()) do
+                if v:IsA("Model") and (v:FindFirstChild("Main") or v:FindFirstChild("Center")) then
+                    local dist = (rootPos - (v:FindFirstChild("Main") or v:FindFirstChild("Center")).Position).Magnitude
+                    if dist < minDist then
+                        local data = EggsUtil.GetByNumber(tonumber(v.Name:match("^%d+"))) or EggsUtil.GetById(v.Name)
+                        if data then
+                            minDist = dist
+                            nearestEgg = data._id
+                            eggType = "Normal"
+                        end
                     end
                 end
             end
         end
 
-        if nearestEggId then
+        -- 2. ИЩЕМ В ИВЕНТОВЫХ (CustomEggs)
+        local customEggs = things:FindFirstChild("CustomEggs")
+        if customEggs then
+            for _, v in pairs(customEggs:GetChildren()) do
+                local part = v:FindFirstChild("Main") or v:FindFirstChild("Center") or v:FindFirstChildWhichIsA("BasePart")
+                if part then
+                    local dist = (rootPos - part.Position).Magnitude
+                    if dist < minDist then
+                        minDist = dist
+                        nearestEgg = v.Name -- Для кастомных это ID папки
+                        eggType = "Custom"
+                    end
+                end
+            end
+        end
+
+        -- ОТПРАВКА ЗАПРОСА
+        if nearestEgg and eggType then
             local maxHatch = 1
             pcall(function() maxHatch = EggCmds.GetMaxHatch() end)
             
-            -- ПРОБУЕМ ТРИ ВАРИАНТА ОТПРАВКИ (один точно сработает)
-            print("🧊 [Glass]: Попытка открыть яйцо:", nearestEggId)
-            
-            -- Вариант 1 (Стандарт)
-            local s1 = pcall(function() EggCmds.RequestPurchase(nearestEggId, maxHatch) end)
-            
-            -- Вариант 2 (Таблица - часто нужен в новых мирах)
-            if not s1 then
-                pcall(function() EggCmds.RequestPurchase({[nearestEggId] = maxHatch}) end)
+            if eggType == "Custom" then
+                -- Сигнал для ивентовых яиц
+                network.CustomEggs_Hatch:InvokeServer(nearestEgg, maxHatch)
+            else
+                -- Сигнал для обычных яиц
+                network.Eggs_RequestPurchase:InvokeServer(nearestEgg, maxHatch)
             end
-            
-            -- Вариант 3 (Через Network напрямую, если EggCmds тупит)
-            pcall(function()
-                game:GetService("ReplicatedStorage").Network.Eggs_RequestPurchase:InvokeServer(nearestEggId, maxHatch)
-            end)
-        else
-            -- Если это вылетит в консоль - значит скрипт не видит яйца рядом
-            -- warn("🧊 [Glass]: Яйца в радиусе 100 не найдены.")
         end
     end
