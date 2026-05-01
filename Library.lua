@@ -3,29 +3,25 @@ local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local HttpService = game:GetService("HttpService")
 
--- Настройки конфига
+-- Переносим конфиг прямо в объект Library
 Library.Config = {}
 Library.ConfigFolder = "GlassHub"
 Library.ConfigFile = Library.ConfigFolder .. "/config.json"
 
--- Функции сохранения и загрузки
-function Library.SaveConfig()
-    if not isfolder(Library.ConfigFolder) then makefolder(Library.ConfigFolder) end
-    writefile(Library.ConfigFile, HttpService:JSONEncode(Library.Config))
+function Library:SaveConfig()
+    if not isfolder(self.ConfigFolder) then makefolder(self.ConfigFolder) end
+    writefile(self.ConfigFile, HttpService:JSONEncode(self.Config))
 end
 
-function Library.LoadConfig()
-    if isfile(Library.ConfigFile) then
-        local success, data = pcall(function() 
-            return HttpService:JSONDecode(readfile(Library.ConfigFile)) 
-        end)
-        if success then Library.Config = data end
+function Library:LoadConfig()
+    if isfile(self.ConfigFile) then
+        local success, data = pcall(function() return HttpService:JSONDecode(readfile(self.ConfigFile)) end)
+        if success then self.Config = data end
     end
 end
 
--- Загружаем данные ПЕРЕД созданием окна
-Library.LoadConfig()
-
+-- Загружаем конфиг сразу при инициализации
+Library:LoadConfig()
 function Library:CreateWindow(hubName)
 	local ScreenGui = Instance.new("ScreenGui")
 	ScreenGui.Name = "GlassHub_PS99"
@@ -427,15 +423,7 @@ function Library:CreateWindow(hubName)
 				}):Play()
 			end
 
-			    
-    		Box.MouseButton1Click:Connect(function()
-        		enabled = not enabled
-        		Library.Config[text] = enabled -- СЮДА
-        		Library:SaveConfig() -- И СЮДА
-        		UpdateVisuals()
-        		callback(enabled)
-    		end)
-		end
+			UpdateVisuals()
 
 			if enabled then
 				task.spawn(function()
@@ -451,68 +439,116 @@ function Library:CreateWindow(hubName)
 				callback(enabled)
 			end)
 		end
-		function TabLogic:AddToggle(side, text, callback)
+
+		function TabLogic:AddDropdown(side, text, list, callback)
 			local column = (side == "Left" and LeftCol or RightCol)
-			local ToggleFrame = Instance.new("Frame")
-			ToggleFrame.Size = UDim2.new(1, 0, 0, 22)
-			ToggleFrame.BackgroundTransparency = 1
-			ToggleFrame.Parent = column
-			local Label = Instance.new("TextLabel")
-			Label.Size = UDim2.new(1, -30, 1, 0)
-			Label.Position = UDim2.new(0, 5, 0, 0)
-			Label.BackgroundTransparency = 1
-			Label.Text = text
-			Label.TextColor3 = Color3.fromRGB(180, 180, 180)
-			Label.TextSize = 13
-			Label.Font = Enum.Font.SourceSans
-			Label.TextXAlignment = Enum.TextXAlignment.Left
-			Label.Parent = ToggleFrame
-			local Box = Instance.new("TextButton")
-			Box.Size = UDim2.new(0, 14, 0, 14)
-			Box.Position = UDim2.new(1, -20, 0.5, -7)
-			Box.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-			Box.BorderSizePixel = 0
-			Box.Text = "" 
-			Box.Parent = ToggleFrame
-			local Gradient = Instance.new("UIGradient")
-			Gradient.Color = ColorSequence.new({
-					ColorSequenceKeypoint.new(0, Color3.fromRGB(80, 120, 255)),
-					ColorSequenceKeypoint.new(1, Color3.fromRGB(160, 80, 255))
-			})
-			Gradient.Rotation = 45
-			Gradient.Enabled = false
-			Gradient.Parent = Box
+
+			local DropFrame = Instance.new("Frame")
+			DropFrame.Size = UDim2.new(1, 0, 0, 26)
+			DropFrame.BackgroundTransparency = 1
+			DropFrame.ClipsDescendants = true
+			DropFrame.Parent = column
+
+			local MainBtn = Instance.new("TextButton")
+			MainBtn.Size = UDim2.new(1, -10, 0, 22)
+			MainBtn.Position = UDim2.new(0, 5, 0, 2)
+			MainBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+			MainBtn.Text = text .. " ▼"
+			MainBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+			MainBtn.TextSize = 12
+			MainBtn.Font = Enum.Font.SourceSans
+			MainBtn.Parent = DropFrame
+
 			local Corner = Instance.new("UICorner")
-			Corner.CornerRadius = UDim.new(0, 3)
-			Corner.Parent = Box
+			Corner.CornerRadius = UDim.new(0, 4)
+			Corner.Parent = MainBtn
+
 			local Stroke = Instance.new("UIStroke")
 			Stroke.Thickness = 1
-			Stroke.Color = Color3.fromRGB(60, 60, 60)
+			Stroke.Color = Color3.fromRGB(65, 65, 65)
 			Stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-			Stroke.Parent = Box
+			Stroke.Parent = MainBtn
 
-			-- Использование Library.Config вместо локального
-			local enabled = Library.Config[text] or false
-			
-			local function UpdateVisuals()
-				Gradient.Enabled = enabled
-				Box.BackgroundColor3 = enabled and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(40, 40, 40)
-				local targetStroke = enabled and Color3.fromRGB(140, 100, 255) or Color3.fromRGB(60, 60, 60)
-				TweenService:Create(Stroke, TweenInfo.new(0.2), {Color = targetStroke}):Play()
-			end
-			
-			UpdateVisuals()
-			if enabled then task.spawn(function() callback(true) end) end
+			local opened = false
+			local selectedItems = Config[text] or {}
 
-			Box.MouseButton1Click:Connect(function()
-				enabled = not enabled
-				Library.Config[text] = enabled
-				if Library.SaveConfig then Library.SaveConfig() end
-				UpdateVisuals()
-				callback(enabled)
+			MainBtn.MouseButton1Click:Connect(function()
+				opened = not opened
+				TweenService:Create(DropFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+					Size = UDim2.new(1, 0, 0, opened and (#list * 22 + 28) or 26)
+				}):Play()
+				MainBtn.Text = opened and text .. " ▲" or text .. " ▼"
 			end)
+
+			for i, v in pairs(list) do
+				local Item = Instance.new("TextButton")
+				Item.Size = UDim2.new(1, -10, 0, 20)
+				Item.Position = UDim2.new(0, 5, 0, i * 22 + 4)
+				Item.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+				Item.Text = v
+				Item.TextColor3 = selectedItems[v] and Color3.fromRGB(140, 100, 255) or Color3.fromRGB(180, 180, 180)
+				Item.TextSize = 12
+				Item.Font = Enum.Font.SourceSans
+				Item.Parent = DropFrame
+
+				Instance.new("UICorner", Item).CornerRadius = UDim.new(0, 4)
+
+				Item.MouseButton1Click:Connect(function()
+					selectedItems[v] = not selectedItems[v]
+					Config[text] = selectedItems
+					SaveConfig()
+
+					local targetColor = selectedItems[v] and Color3.fromRGB(140, 100, 255) or Color3.fromRGB(180, 180, 180)
+					TweenService:Create(Item, TweenInfo.new(0.2), {TextColor3 = targetColor}):Play()
+
+					callback(v, selectedItems[v])
+				end)
+			end
+
+			for name, state in pairs(selectedItems) do
+				if state then
+					task.spawn(function()
+						callback(name, true)
+					end)
+				end
+			end
 		end
 
+		function TabLogic:AddButton(side, text, callback)
+			local column = (side == "Left" and LeftCol or RightCol)
+
+			local ButtonFrame = Instance.new("Frame")
+			ButtonFrame.Size = UDim2.new(1, 0, 0, 28)
+			ButtonFrame.BackgroundTransparency = 1
+			ButtonFrame.Parent = column
+
+			local Btn = Instance.new("TextButton")
+			Btn.Size = UDim2.new(1, -10, 0, 22)
+			Btn.Position = UDim2.new(0, 5, 0.5, -11)
+			Btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+			Btn.Text = text
+			Btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+			Btn.TextSize = 13
+			Btn.Font = Enum.Font.SourceSans
+			Btn.Parent = ButtonFrame
+
+			local Corner = Instance.new("UICorner")
+			Corner.CornerRadius = UDim.new(0, 4)
+			Corner.Parent = Btn
+
+			local Stroke = Instance.new("UIStroke")
+			Stroke.Thickness = 1
+			Stroke.Color = Color3.fromRGB(65, 65, 65)
+			Stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+			Stroke.Parent = Btn
+
+			Btn.MouseButton1Click:Connect(function()
+				Btn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+				task.wait(0.1)
+				Btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+				callback()
+			end)
+		end
 		return TabLogic
 	end
 
