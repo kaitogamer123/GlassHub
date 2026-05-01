@@ -6,6 +6,7 @@ local breakables = things:WaitForChild("Breakables")
 local petsFolder = things:WaitForChild("Pets")
 
 getgenv().EventFarmActive = false
+getgenv().EventLockedPos = nil 
 
 local petIds = {}
 
@@ -22,14 +23,33 @@ updatePetList()
 petsFolder.ChildAdded:Connect(updatePetList)
 petsFolder.ChildRemoved:Connect(updatePetList)
 
+-- Функция создания визуального квадрата
+local function spawnVisualZone(pos)
+    local part = Instance.new("Part")
+    part.Name = "GlassHub_VisualZone"
+    part.Anchored = true
+    part.CanCollide = false
+    part.CastShadow = false
+    part.Transparency = 0.7
+    part.Color = Color3.fromRGB(255, 0, 0) -- Красный
+    part.Material = Enum.Material.ForceField
+    part.Size = Vector3.new(100, 1, 100) -- Квадрат 100x100 (радиус 50)
+    part.CFrame = CFrame.new(pos)
+    part.Parent = workspace
+    
+    task.delay(3, function() -- Удаляем через 3 секунды
+        part:Destroy()
+    end)
+end
+
 task.spawn(function()
     while true do
         if getgenv().EventFarmActive then
-            local char = player.Character
-            local root = char and char:FindFirstChild("HumanoidRootPart")
+            -- Если точка не зафиксирована, используем текущую позицию игрока
+            local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+            local farmPos = getgenv().EventLockedPos or (root and root.Position)
             
-            if root and #petIds > 0 then
-                local myPos = root.Position
+            if farmPos and #petIds > 0 then
                 local targets = {}
                 local radiusSq = 50^2 
                 
@@ -40,8 +60,8 @@ task.spawn(function()
                     
                     if part then
                         local pPos = part.Position
-                        local dx, dy, dz = pPos.X - myPos.X, pPos.Y - myPos.Y, pPos.Z - myPos.Z
-                        if (dx*dx + dy*dy + dz*dz) <= radiusSq then
+                        local dx, dz = pPos.X - farmPos.X, pPos.Z - farmPos.Z
+                        if (dx*dx + dz*dz) <= radiusSq then
                             table.insert(targets, obj.Name)
                         end
                     end
@@ -61,6 +81,18 @@ task.spawn(function()
     end
 end)
 
-return function(state)
-    getgenv().EventFarmActive = state
-end
+return {
+    Toggle = function(v) getgenv().EventFarmActive = v end,
+    Lock = function()
+        local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+        if root then
+            getgenv().EventLockedPos = root.Position
+            spawnVisualZone(root.Position) -- Спавним квадрат только при нажатии
+            print("🧊 [Event]: Точка зафиксирована")
+        end
+    end,
+    Reset = function()
+        getgenv().EventLockedPos = nil
+        print("🧊 [Event]: Точка сброшена (фарм вокруг игрока)")
+    end
+}
