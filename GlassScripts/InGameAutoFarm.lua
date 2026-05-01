@@ -1,16 +1,22 @@
-return function(state)
-    local success, err = pcall(function()
-        local Cmd = require(game:GetService("ReplicatedStorage").Library.Client.AutoFarmCmds)
-        if state then
-            Cmd.Enable()
-            print("AutoFarm: Script Enabled")
-        else
-            Cmd.Disable()
-            print("AutoFarm: Script Disabled")
+local Cmd = require(game:GetService("ReplicatedStorage").Library.Client.AutoFarmCmds)
+getgenv().GlassInGameActive = false
+
+-- Запускаем цикл один раз при загрузке скрипта
+task.spawn(function()
+    while true do
+        if getgenv().GlassInGameActive then
+            if not Cmd.Active then -- Используем Active вместо IsEnabled() для скорости
+                pcall(function() Cmd.Enable() end)
+            end
         end
-    end)
-    
-    if not success then
-        warn("InGameAutoFarm Error: " .. tostring(err))
+        task.wait(1)
     end
+end)
+
+return function(state)
+    getgenv().GlassInGameActive = state
+    if not state then
+        pcall(function() Cmd.Disable() end)
+    end
+    print("In-Game Farm State:", state)
 end
