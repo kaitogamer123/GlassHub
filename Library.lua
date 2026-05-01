@@ -355,6 +355,7 @@ function Library:CreateWindow(hubName)
                 Btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
                 callback()
             end)
+		end
 		function TabLogic:AddSlider(side, text, min, max, default, callback)
 			local column = (side == "Left" and LeftCol or RightCol)
 			local SliderFrame = Instance.new("Frame")
