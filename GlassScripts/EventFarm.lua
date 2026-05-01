@@ -7,8 +7,10 @@ local petsFolder = things:WaitForChild("Pets")
 
 getgenv().EventFarmActive = false
 getgenv().EventLockedPos = nil 
+getgenv().EventFarmRadius = 50 -- Стандартный радиус
 
 local petIds = {}
+local lastVisualCircle = nil
 
 local function updatePetList()
     table.clear(petIds)
@@ -23,41 +25,53 @@ updatePetList()
 petsFolder.ChildAdded:Connect(updatePetList)
 petsFolder.ChildRemoved:Connect(updatePetList)
 
--- Функция создания визуального квадрата
-local function spawnVisualZone(pos)
-    local part = Instance.new("Part")
-    part.Name = "GlassHub_VisualZone"
-    part.Anchored = true
-    part.CanCollide = false
-    part.CastShadow = false
-    part.Transparency = 0.7
-    part.Color = Color3.fromRGB(255, 0, 0) -- Красный
-    part.Material = Enum.Material.ForceField
-    part.Size = Vector3.new(100, 1, 100) -- Квадрат 100x100 (радиус 50)
-    part.CFrame = CFrame.new(pos)
-    part.Parent = workspace
+-- Функция создания визуального круга (цилиндра)
+local function showVisualRadius()
+    if lastVisualCircle then lastVisualCircle:Destroy() end
+
+    local char = player.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    local pos = getgenv().EventLockedPos or (root and root.Position)
     
-    task.delay(3, function() -- Удаляем через 3 секунды
-        part:Destroy()
+    if not pos then return end
+
+    local circle = Instance.new("Part")
+    circle.Name = "GlassHub_VisualRadius"
+    circle.Shape = Enum.PartType.Cylinder
+    circle.Anchored = true
+    circle.CanCollide = false
+    circle.Transparency = 0.7 -- Прозрачность 30% видимости
+    circle.Color = Color3.fromRGB(255, 0, 0)
+    circle.Material = Enum.Material.SmoothPlastic
+    -- Диаметр = Радиус * 2
+    local diameter = getgenv().EventFarmRadius * 2
+    circle.Size = Vector3.new(0.5, diameter, diameter)
+    -- Поворачиваем цилиндр, чтобы он лежал как круг на земле
+    circle.CFrame = CFrame.new(pos) * CFrame.Angles(0, 0, math.rad(90))
+    circle.Parent = workspace
+    
+    lastVisualCircle = circle
+
+    task.delay(3, function()
+        if circle and circle.Parent then circle:Destroy() end
     end)
 end
 
 task.spawn(function()
     while true do
         if getgenv().EventFarmActive then
-            -- Если точка не зафиксирована, используем текущую позицию игрока
-            local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+            local char = player.Character
+            local root = char and char:FindFirstChild("HumanoidRootPart")
             local farmPos = getgenv().EventLockedPos or (root and root.Position)
             
             if farmPos and #petIds > 0 then
                 local targets = {}
-                local radiusSq = 50^2 
-                
+                local radiusSq = getgenv().EventFarmRadius^2 
                 local allBreakables = breakables:GetChildren()
+                
                 for i = 1, #allBreakables do
                     local obj = allBreakables[i]
                     local part = obj:IsA("BasePart") and obj or obj:FindFirstChildWhichIsA("BasePart")
-                    
                     if part then
                         local pPos = part.Position
                         local dx, dz = pPos.X - farmPos.X, pPos.Z - farmPos.Z
@@ -83,16 +97,17 @@ end)
 
 return {
     Toggle = function(v) getgenv().EventFarmActive = v end,
+    SetRadius = function(v) getgenv().EventFarmRadius = v end,
+    Show = function() showVisualRadius() end,
     Lock = function()
         local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
         if root then
             getgenv().EventLockedPos = root.Position
-            spawnVisualZone(root.Position) -- Спавним квадрат только при нажатии
             print("🧊 [Event]: Точка зафиксирована")
         end
     end,
     Reset = function()
         getgenv().EventLockedPos = nil
-        print("🧊 [Event]: Точка сброшена (фарм вокруг игрока)")
+        print("🧊 [Event]: Точка сброшена")
     end
 }
