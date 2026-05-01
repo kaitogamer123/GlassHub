@@ -1,4 +1,5 @@
 local Library = {}
+local Library.Config = {}
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 
@@ -483,4 +484,3 @@ function Library:CreateWindow(hubName)
 end
 
 return Library
-end
