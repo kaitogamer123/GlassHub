@@ -12,7 +12,7 @@ return function()
     -- Функция поиска ближайшего яйца
     local function getNearestEgg()
         local nearestData = nil
-        local minDist = 40 -- Радиус поиска
+        local minDist = 100 -- Радиус поиска
         local root = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
         
         if not root then return nil end
