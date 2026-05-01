@@ -1,6 +1,7 @@
 local RS = game:GetService("ReplicatedStorage")
 local Network = RS:WaitForChild("Network"):WaitForChild("Breakables_JoinPetBulk")
-local player = game:GetService("Players").LocalPlayer
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
 local things = workspace:WaitForChild("__THINGS")
 local breakables = things:WaitForChild("Breakables")
 local petsFolder = things:WaitForChild("Pets")
@@ -10,6 +11,10 @@ getgenv().AdvancedFarmActive = false
 getgenv().LockedZone = nil 
 
 local petIds = {}
+
+local function log(msg)
+    print("🧊 [AdvancedFarm]: " .. tostring(msg))
+end
 
 local function updatePetList()
     table.clear(petIds)
@@ -26,14 +31,12 @@ petsFolder.ChildRemoved:Connect(updatePetList)
 
 local function getNearestZone()
     local closest, dist = nil, math.huge
-    local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+    local char = player.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
     if not root then return nil end
 
     for _, folder in ipairs(Map3:GetChildren()) do
-        local zone = folder:FindFirstChild("INTERACT", true) 
-            and folder.INTERACT:FindFirstChild("BREAK_ZONES", true) 
-            and folder.INTERACT.BREAK_ZONES:FindFirstChild("BREAK_ZONE")
-        
+        local zone = folder:FindFirstChild("INTERACT", true) and folder.INTERACT:FindFirstChild("BREAK_ZONES", true) and folder.INTERACT.BREAK_ZONES:FindFirstChild("BREAK_ZONE")
         if zone then
             local d = (zone.Position - root.Position).Magnitude
             if d < dist then
@@ -46,6 +49,7 @@ local function getNearestZone()
 end
 
 task.spawn(function()
+    log("Скрипт готов к работе.")
     while true do
         if getgenv().AdvancedFarmActive then
             local targetZone = getgenv().LockedZone or getNearestZone()
@@ -82,4 +86,5 @@ end)
 
 return function(state)
     getgenv().AdvancedFarmActive = state
+    log(state and "Фарм запущен" or "Фарм остановлен")
 end
