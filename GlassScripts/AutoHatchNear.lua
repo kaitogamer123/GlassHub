@@ -1,35 +1,53 @@
--- Файл: GlassScripts/AutoHatch.lua
-return function()
-    -- Проверка на дубликаты
-    if getgenv().AutoHatchLoaded then return end
-    getgenv().AutoHatchLoaded = true
-
-    local EggsUtil = require(game.ReplicatedStorage.Library.Util.EggsUtil)
-    local EggCmds = require(game.ReplicatedStorage.Library.Client.EggCmds)
-
-    -- Сама функция поиска и открытия
     local function hatchNearest()
         local player = game.Players.LocalPlayer
-        local char = player.Character
-        if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+        local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+        if not root then return end
         
-        local rootPos = char.HumanoidRootPart.Position
-        local eggsFolder = game.Workspace:WaitForChild("__THINGS"):WaitForChild("Eggs")
+        local rootPos = root.Position
+        local things = game.Workspace:WaitForChild("__THINGS")
         
         local nearestEggData = nil
-        local minDist = 50 
+        local minDist = 100 
 
-        for _, v in pairs(eggsFolder:GetDescendants()) do
-            if v:IsA("Model") and v.Name:match("^%d+") then
-                local part = v:FindFirstChild("Center") or v:FindFirstChildWhichIsA("BasePart")
-                if part then
-                    local dist = (rootPos - part.Position).Magnitude
-                    if dist < minDist then
-                        local eggNumber = tonumber(v.Name:match("^%d+"))
-                        local data = EggsUtil.GetByNumber(eggNumber)
-                        if data then
-                            minDist = dist
-                            nearestEggData = data
+        -- Собираем список всех возможных папок с яйцами
+        local foldersToSearch = {
+            things:FindFirstChild("CustomEggs"),
+            things:FindFirstChild("ZoneEggs")
+        }
+
+        for _, folder in pairs(foldersToSearch) do
+            if folder then
+                -- Рекурсивно или через вложенные папки (для ZoneEggs)
+                for _, item in pairs(folder:GetDescendants()) do
+                    -- Проверяем, что это модель яйца (обычно у них есть "Tier" в атрибутах или специфичные парты)
+                    if item:IsA("Model") and (item:FindFirstChild("Main") or item:FindFirstChild("Center")) then
+                        local part = item:FindFirstChild("Main") or item:FindFirstChild("Center")
+                        local dist = (rootPos - part.Position).Magnitude
+                        
+                        if dist < minDist then
+                            -- Пытаемся найти данные яйца тремя способами:
+                            local data = nil
+                            
+                            -- 1. По номеру (если есть в начале имени)
+                            local eggNumber = tonumber(item.Name:match("^%d+"))
+                            if eggNumber then
+                                data = EggsUtil.GetByNumber(eggNumber)
+                            end
+                            
+                            -- 2. По точному имени/ID (для Ruby Egg или хешей)
+                            if not data then
+                                data = EggsUtil.GetById(item.Name)
+                            end
+                            
+                            -- 3. По названию (Get)
+                            if not data then
+                                data = EggsUtil.Get(item.Name)
+                            end
+
+                            if data then
+                                minDist = dist
+                                nearestEggData = data
+                            end
                         end
                     end
                 end
@@ -40,21 +58,8 @@ return function()
             local maxHatch = 1
             pcall(function() maxHatch = EggCmds.GetMaxHatch() end)
             pcall(function()
+                -- Используем _id из полученных данных
                 EggCmds.RequestPurchase(nearestEggData._id, maxHatch)
             end)
         end
     end
-
-    -- Цикл, который ждет команду от кнопки
-    task.spawn(function()
-        while true do
-            -- Используем getgenv() вместо _G для надежности во внешних экзекуторах
-            if getgenv().AutoHatchNearEgg == true then
-                hatchNearest()
-                task.wait(0.5)
-            else
-                task.wait(1)
-            end
-        end
-    end)
-end
