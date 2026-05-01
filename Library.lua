@@ -356,6 +356,127 @@ function Library:CreateWindow(hubName)
                 callback()
             end)
         end
+		
+		function TabLogic:AddSlider(side, text, min, max, default, callback)
+			local column = (side == "Left" and LeftCol or RightCol)
+			local SliderFrame = Instance.new("Frame")
+			SliderFrame.Size = UDim2.new(1, 0, 0, 38)
+			SliderFrame.BackgroundTransparency = 1
+			SliderFrame.Parent = column
+
+			local Label = Instance.new("TextLabel")
+			Label.Size = UDim2.new(1, -10, 0, 20)
+			Label.Position = UDim2.new(0, 5, 0, 0)
+			Label.BackgroundTransparency = 1
+			Label.Text = text
+			Label.TextColor3 = Color3.fromRGB(180, 180, 180)
+			Label.TextSize = 13
+			Label.Font = Enum.Font.SourceSans
+			Label.TextXAlignment = Enum.TextXAlignment.Left
+			Label.Parent = SliderFrame
+
+			local ValueLabel = Instance.new("TextLabel")
+			ValueLabel.Size = UDim2.new(0, 40, 0, 20)
+			ValueLabel.Position = UDim2.new(1, -45, 0, 0)
+			ValueLabel.BackgroundTransparency = 1
+			ValueLabel.Text = tostring(Library.Config[text] or default)
+			ValueLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+			ValueLabel.TextSize = 12
+			ValueLabel.Font = Enum.Font.Code
+			ValueLabel.TextXAlignment = Enum.TextXAlignment.Right
+			ValueLabel.Parent = SliderFrame
+
+			local SliderBack = Instance.new("TextButton")
+			SliderBack.Size = UDim2.new(1, -15, 0, 4)
+			SliderBack.Position = UDim2.new(0, 7, 0, 26)
+			SliderBack.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+			SliderBack.BorderSizePixel = 0
+			SliderBack.Text = ""
+			SliderBack.AutoButtonColor = false
+			SliderBack.Parent = SliderFrame
+
+			local SliderCorner = Instance.new("UICorner")
+			SliderCorner.CornerRadius = UDim.new(0, 2)
+			SliderCorner.Parent = SliderBack
+
+			local Fill = Instance.new("Frame")
+			Fill.Size = UDim2.new(0, 0, 1, 0)
+			Fill.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+			Fill.BorderSizePixel = 0
+			Fill.Parent = SliderBack
+
+			local FillGradient = Instance.new("UIGradient")
+			FillGradient.Color = ColorSequence.new({
+				ColorSequenceKeypoint.new(0, Color3.fromRGB(80, 120, 255)),
+				ColorSequenceKeypoint.new(1, Color3.fromRGB(160, 80, 255))
+			})
+			FillGradient.Parent = Fill
+
+			local FillCorner = Instance.new("UICorner")
+			FillCorner.CornerRadius = UDim.new(0, 2)
+			FillCorner.Parent = Fill
+
+			local Circle = Instance.new("Frame")
+			Circle.Size = UDim2.new(0, 10, 0, 10)
+			Circle.Position = UDim2.new(0, 0, 0.5, -5)
+			Circle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+			Circle.BorderSizePixel = 0
+			Circle.Parent = SliderBack
+
+			local CircleCorner = Instance.new("UICorner")
+			CircleCorner.CornerRadius = UDim.new(1, 0)
+			CircleCorner.Parent = Circle
+
+			local CircleStroke = Instance.new("UIStroke")
+			CircleStroke.Thickness = 1
+			CircleStroke.Color = Color3.fromRGB(140, 100, 255)
+			CircleStroke.Parent = Circle
+
+			-- Логика слайдера
+			local value = Library.Config[text] or default
+			local dragging = false
+
+			local function UpdateSlider()
+				local percent = math.clamp((value - min) / (max - min), 0, 1)
+				ValueLabel.Text = tostring(value)
+				TweenService:Create(Fill, TweenInfo.new(0.1), {Size = UDim2.new(percent, 0, 1, 0)}):Play()
+				TweenService:Create(Circle, TweenInfo.new(0.1), {Position = UDim2.new(percent, -5, 0.5, -5)}):Play()
+			end
+
+			local function Move(input)
+				local pos = math.clamp((input.Position.X - SliderBack.AbsolutePosition.X) / SliderBack.AbsoluteSize.X, 0, 1)
+				local newValue = math.floor(min + (max - min) * pos)
+				if newValue ~= value then
+					value = newValue
+					Library.Config[text] = value
+					if Library.SaveConfig then Library.SaveConfig() end
+					UpdateSlider()
+					callback(value)
+				end
+			end
+
+			SliderBack.InputBegan:Connect(function(input)
+				if input.UserInputType == Enum.UserInputType.MouseButton1 then
+					dragging = true
+					Move(input)
+				end
+			end)
+
+			game:GetService("UserInputService").InputEnded:Connect(function(input)
+				if input.UserInputType == Enum.UserInputType.MouseButton1 then
+					dragging = false
+				end
+			end)
+
+			game:GetService("UserInputService").InputChanged:Connect(function(input)
+				if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+					Move(input)
+				end
+			end)
+
+			UpdateSlider()
+			if Library.Config[text] then task.spawn(function() callback(value) end) end
+		end
 
         return TabLogic -- TabLogic теперь возвращается ПОСЛЕ всех функций
     end
