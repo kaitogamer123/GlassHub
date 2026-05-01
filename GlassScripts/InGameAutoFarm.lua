@@ -1,22 +1,44 @@
-local Cmd = require(game:GetService("ReplicatedStorage").Library.Client.AutoFarmCmds)
-getgenv().GlassInGameActive = false
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Library = ReplicatedStorage:WaitForChild("Library")
+local AutoFarmCmds = require(Library.Client.AutoFarmCmds)
 
--- Запускаем цикл один раз при загрузке скрипта
+-- Используем getgenv() вместо _G, так как в хабах это надежнее
+getgenv().Glass_InGameEnabled = false
+
 task.spawn(function()
     while true do
-        if getgenv().GlassInGameActive then
-            if not Cmd.Active then -- Используем Active вместо IsEnabled() для скорости
-                pcall(function() Cmd.Enable() end)
+        -- Проверяем, активен ли переключатель в твоем UI
+        if getgenv().Glass_InGameEnabled then
+            -- Проверяем статус через .Active (так надежнее в текущем API игры)
+            local isActive = false
+            pcall(function()
+                isActive = AutoFarmCmds.Active or AutoFarmCmds.IsEnabled()
+            end)
+
+            if not isActive then
+                pcall(function()
+                    AutoFarmCmds.Enable()
+                end)
+            end
+        else
+            -- Выключаем, если в UI галочка снята
+            local isActive = false
+            pcall(function()
+                isActive = AutoFarmCmds.Active or AutoFarmCmds.IsEnabled()
+            end)
+
+            if isActive then
+                pcall(function()
+                    AutoFarmCmds.Disable()
+                end)
             end
         end
         task.wait(1)
     end
 end)
 
+-- Возвращаем функцию для твоего лоадера/кнопки
 return function(state)
-    getgenv().GlassInGameActive = state
-    if not state then
-        pcall(function() Cmd.Disable() end)
-    end
-    print("In-Game Farm State:", state)
+    getgenv().Glass_InGameEnabled = state
+    print("🧊 [GlassHub]: In-Game Farm state ->", state)
 end
