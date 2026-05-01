@@ -483,3 +483,4 @@ function Library:CreateWindow(hubName)
 end
 
 return Library
+end
