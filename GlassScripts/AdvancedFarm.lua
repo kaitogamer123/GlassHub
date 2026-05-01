@@ -1,18 +1,16 @@
 local RS = game:GetService("ReplicatedStorage")
-local Players = game:GetService("Players")
 local Network = RS:WaitForChild("Network"):WaitForChild("Breakables_JoinPetBulk")
-local player = Players.LocalPlayer
+local player = game:GetService("Players").LocalPlayer
 local things = workspace:WaitForChild("__THINGS")
 local breakables = things:WaitForChild("Breakables")
 local petsFolder = things:WaitForChild("Pets")
-
 local Map3 = workspace:WaitForChild("Map3")
 
-local petIds = {}
 getgenv().AdvancedFarmActive = false
 getgenv().LockedZone = nil 
 
--- Обновление списка питомцев
+local petIds = {}
+
 local function updatePetList()
     table.clear(petIds)
     for _, pet in ipairs(petsFolder:GetChildren()) do
@@ -26,18 +24,16 @@ updatePetList()
 petsFolder.ChildAdded:Connect(updatePetList)
 petsFolder.ChildRemoved:Connect(updatePetList)
 
--- Поиск ближайшей зоны во ВСЕХ папках Map3
 local function getNearestZone()
     local closest, dist = nil, math.huge
     local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
     if not root then return nil end
 
     for _, folder in ipairs(Map3:GetChildren()) do
-        -- Ищем путь: Папка -> INTERACT -> BREAK_ZONES -> BREAK_ZONE
-        local interact = folder:FindFirstChild("INTERACT")
-        local zones = interact and interact:FindFirstChild("BREAK_ZONES")
-        local zone = zones and zones:FindFirstChild("BREAK_ZONE")
-
+        local zone = folder:FindFirstChild("INTERACT", true) 
+            and folder.INTERACT:FindFirstChild("BREAK_ZONES", true) 
+            and folder.INTERACT.BREAK_ZONES:FindFirstChild("BREAK_ZONE")
+        
         if zone then
             local d = (zone.Position - root.Position).Magnitude
             if d < dist then
@@ -51,24 +47,20 @@ end
 
 task.spawn(function()
     while true do
-        -- Условие: включен AdvancedFarm И функция InGameFarm активна
-        if getgenv().AdvancedFarmActive and _G.InGameFarmRunning then
+        if getgenv().AdvancedFarmActive then
             local targetZone = getgenv().LockedZone or getNearestZone()
             
             if targetZone and #petIds > 0 then
                 local zonePos = targetZone.Position
                 local targets = {}
-                
                 local allBreakables = breakables:GetChildren()
+                
                 for i = 1, #allBreakables do
                     local obj = allBreakables[i]
                     local part = obj:IsA("BasePart") and obj or obj:FindFirstChildWhichIsA("BasePart")
                     
                     if part then
-                        -- Проверка дистанции от центра найденной зоны
-                        local pPos = part.Position
-                        local dx, dy, dz = pPos.X - zonePos.X, pPos.Y - zonePos.Y, pPos.Z - zonePos.Z
-                        if (dx*dx + dy*dy + dz*dz) <= 80^2 then -- Радиус 80
+                        if (part.Position - zonePos).Magnitude <= 85 then
                             table.insert(targets, obj.Name)
                         end
                     end
