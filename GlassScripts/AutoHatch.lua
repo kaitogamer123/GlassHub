@@ -21,7 +21,7 @@ return function()
         local customFolder = things:FindFirstChild("CustomEggs")
         if customFolder then
             for _, egg in pairs(customFolder:GetChildren()) do
-                -- ПРОВЕРКА: Только модели (игнорируем Highlight и прочее)
+                -- Проверяем, что это МОДЕЛЬ (игнорируем Highlight)
                 if egg:IsA("Model") then
                     local dist = (egg:GetPivot().Position - root.Position).Magnitude
                     if dist < minDist then
@@ -37,7 +37,6 @@ return function()
         if zoneFolder and not nearestData then
             for _, world in pairs(zoneFolder:GetChildren()) do
                 for _, egg in pairs(world:GetChildren()) do
-                    -- ПРОВЕРКА: Только модели
                     if egg:IsA("Model") then
                         local dist = (egg:GetPivot().Position - root.Position).Magnitude
                         if dist < minDist then
@@ -54,24 +53,11 @@ return function()
 
     -- ОСНОВНОЙ ЦИКЛ
     task.spawn(function()
-        local playerGui = lp:WaitForChild("PlayerGui")
-        
-        -- Фоновое отключение анимации (чтобы не лагало)
-        task.spawn(function()
-            while true do
-                if getgenv().AutoHatchNearEgg and playerGui:FindFirstChild("EggOpen") then
-                    playerGui.EggOpen.Enabled = false
-                end
-                task.wait(1)
-            end
-        end)
-
         while true do
             if getgenv().AutoHatchNearEgg == true then
                 local egg = getNearestEgg()
                 
                 if egg then
-                    -- Получаем макс. кол-во яиц за раз (8, 30 и т.д.)
                     local maxAmount = 1
                     pcall(function() maxAmount = EggCmds.GetMaxHatch() end)
 
