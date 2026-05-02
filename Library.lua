@@ -602,6 +602,50 @@ function Library:CreateWindow(hubName)
 			return DropdownData
 		end
 
+		function TabLogic:AddTextBox(side, text, callback)
+			local column = (side == "Left" and LeftCol or RightCol)
+			local TextBoxFrame = Instance.new("Frame")
+			TextBoxFrame.Size = UDim2.new(1, 0, 0, 45)
+			TextBoxFrame.BackgroundTransparency = 1
+			TextBoxFrame.Parent = column
+
+			local Label = Instance.new("TextLabel")
+			Label.Size = UDim2.new(1, -10, 0, 20)
+			Label.Position = UDim2.new(0, 5, 0, 0)
+			Label.BackgroundTransparency = 1
+			Label.Text = text
+			Label.TextColor3 = Color3.fromRGB(180, 180, 180)
+			Label.TextSize = 13
+			Label.Font = Enum.Font.SourceSans
+			Label.TextXAlignment = Enum.TextXAlignment.Left
+			Label.Parent = TextBoxFrame
+
+			local InputBox = Instance.new("TextBox")
+			InputBox.Size = UDim2.new(1, -10, 0, 20)
+			InputBox.Position = UDim2.new(0, 5, 0, 22)
+			InputBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+			InputBox.BorderSizePixel = 0
+			InputBox.Text = ""
+			InputBox.PlaceholderText = "Type here..."
+			InputBox.PlaceholderColor3 = Color3.fromRGB(100, 100, 100)
+			InputBox.TextColor3 = Color3.fromRGB(200, 200, 200)
+			InputBox.TextSize = 12
+			InputBox.Font = Enum.Font.SourceSans
+			InputBox.ClearTextOnFocus = false
+			InputBox.Parent = TextBoxFrame
+
+			local InputCorner = Instance.new("UICorner")
+			InputCorner.CornerRadius = UDim.new(0, 4)
+			InputCorner.Parent = InputBox
+
+			-- Обработка ввода
+			InputBox.FocusLost:Connect(function(enterPressed)
+				-- Мы вызываем callback только если нажат Enter
+				if enterPressed then
+					callback(InputBox.Text)
+				end
+			end)
+		end
 
 		
         return TabLogic -- TabLogic теперь возвращается ПОСЛЕ всех функций
