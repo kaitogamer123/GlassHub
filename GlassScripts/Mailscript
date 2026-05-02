@@ -1,0 +1,991 @@
+local v_u_1 = game:GetService("RunService")
+local v_u_2 = require(game.ReplicatedStorage.Library.Client.UI.ItemContainerUI)
+require(game.ReplicatedStorage.Library.Types.Items)
+local v_u_3 = require(game.ReplicatedStorage.Library.Items.Types)
+require(game.ReplicatedStorage.Library.Items.AbstractItem)
+local v_u_4 = require(game.ReplicatedStorage.Library.Client.UI.InventorySelect)
+local v_u_5 = require(game.ReplicatedStorage.Library.Items.AbstractItem)
+local v_u_6 = require(game.ReplicatedStorage.Library.Client.UI.ItemUI)
+require(game.ReplicatedStorage.Library.Items)
+local v_u_7 = require(game.ReplicatedStorage.Library.Client.CurrencyCmds)
+require(game.ReplicatedStorage.Library.Client.NotificationCmds)
+local v8 = require(game.ReplicatedStorage.Library.Client.MachineCmds)
+local v_u_9 = require(game.ReplicatedStorage.Library.Balancing)
+local v10 = require(game.ReplicatedStorage.Library.Client.GUI)
+local v_u_11 = require(game.ReplicatedStorage.Library.Client.GUIFX)
+local v12 = require(game.ReplicatedStorage.Library.Client.AutoGridLayout)
+local v_u_13 = require(game.ReplicatedStorage.Library.Variables)
+local v_u_14 = require(game.ReplicatedStorage.Library.Audio)
+local v_u_15 = require(game.ReplicatedStorage.Library.Functions)
+local v_u_16 = require(game.ReplicatedStorage.Library.Client.InfoOverlay)
+local v_u_17 = require(game.ReplicatedStorage.Library.Client.Message)
+local v_u_18 = require(game.ReplicatedStorage.Library.Client.Network)
+local v_u_19 = require(game.ReplicatedStorage.Library.Signal)
+local v_u_20 = require(game.ReplicatedStorage.Library.Directory)
+local v21 = require(game.ReplicatedStorage.Library.Client.TabController)
+local v_u_22 = require(game.ReplicatedStorage.Library.Client.Save)
+local v_u_23 = require(game.ReplicatedStorage.Library.Balancing.Constants)
+local v_u_24 = require(game.ReplicatedStorage.Library.Client.InstancingCmds)
+require(game.ReplicatedStorage.Library.Items.PetItem)
+local v25 = game.ReplicatedStorage:WaitForChild("Assets")
+game:GetService("UserService")
+local v_u_26 = game:GetService("Players")
+local v_u_27 = require(game.ReplicatedStorage.Library.Types.Mailbox)
+v_u_15.Debounce()
+local v_u_28 = v25.UI.Mailbox
+local v_u_29 = v25.UI.Gradients.RedGradient
+local v_u_30 = v25.UI.Gradients.GreenGradient
+local v_u_31 = v25.UI.Gradients.GreyGradient
+local v_u_32 = v_u_28.SelectedGradient
+local v33 = v10.MailboxMachine()
+local v_u_34 = v33.Frame
+local v_u_35 = v33.Frame.OptionsFrame.ItemsFrame
+local _ = v_u_35.Gifts
+local _ = v_u_35.History
+local _ = v_u_35.Settings
+local _ = v_u_35.Send
+local v_u_36 = v_u_34:FindFirstChild("SendFrame")
+local v_u_37 = v_u_34:FindFirstChild("SettingsFrame")
+local v_u_38 = v_u_34:FindFirstChild("HistoryFrame")
+local v_u_39 = v_u_34:FindFirstChild("GiftsFrame")
+local v_u_40 = v_u_36.Bottom.Diamonds.Timer
+local v_u_41 = v_u_36.Bottom.Diamonds.Frame.Amount
+local v_u_42 = v33.Frame.OptionsFrame.ClaimAll
+local v_u_43 = nil
+local v_u_44 = nil
+local v_u_45 = nil
+local v_u_46 = nil
+local v_u_47 = {}
+local v_u_48 = "Gifts"
+local v_u_49 = nil
+local v_u_50 = game.Players.LocalPlayer
+local v_u_51 = nil
+local v52 = {
+	{
+		["ResolutionThreshold"] = 0.55,
+		["PerRow"] = 3,
+		["Padding"] = UDim2.new(0, 12, 0, 20)
+	},
+	{
+		["ResolutionThreshold"] = 1.25,
+		["PerRow"] = 4,
+		["Padding"] = UDim2.new(0, 15, 0, 25)
+	},
+	{
+		["ResolutionThreshold"] = (1 / 0),
+		["PerRow"] = 5,
+		["Padding"] = UDim2.new(0, 18, 0, 30)
+	}
+}
+local v_u_53 = v12(v_u_39.ItemsFrame, v52, true)
+local v_u_54 = v12(v_u_38.ItemsFrame, v52, true)
+local function v_u_64()
+	-- upvalues: (copy) v_u_23, (copy) v_u_22, (copy) v_u_27, (copy) v_u_50
+	local v55 = v_u_23.MailboxDiamondCost
+	local v56 = v_u_22.Get()
+	if not v56 then
+		return v55
+	end
+	local v57 = workspace:GetServerTimeNow()
+	if v56.MailboxResetTime == nil and true or v56.MailboxResetTime < v57 then
+		return v55
+	end
+	local v58 = v_u_27.DiamondCostGrowthRate
+	local v59 = v56.MailboxSendsSinceReset
+	local v60 = v55 * math.pow(v58, v59)
+	local v61 = math.floor(v60)
+	local v62 = v_u_27.DiamondCostCap
+	local v63 = math.min(v61, v62)
+	if v56.Gamepasses.VIP == true then
+		v63 = v55
+	end
+	if v_u_50:GetAttribute("Partner") ~= true then
+		v55 = v63
+	end
+	return v55
+end
+local function v_u_66(p65)
+	return {
+		["Inbox"] = {},
+		["Settings"] = p65 or {
+			["Enabled"] = true,
+			["FriendsOnly"] = false,
+			["HugesOnly"] = false,
+			["RequiredPet"] = false,
+			["RequiredDiamonds"] = false,
+			["Rarities"] = {}
+		}
+	}
+end
+local function v_u_77(p_u_67, p_u_68)
+	-- upvalues: (copy) v_u_15, (copy) v_u_16, (copy) v_u_13, (copy) v_u_14
+	local function v_u_73()
+		-- upvalues: (copy) p_u_68, (ref) v_u_15, (ref) v_u_16, (copy) p_u_67
+		local v69 = workspace:GetServerTimeNow() - p_u_68.Timestamp
+		local v70 = v_u_15.TimeString(v69) .. " ago"
+		local v71 = v69 <= 120 and "Just now" or v70
+		if not (p_u_68.Sender and p_u_68.Sender) then
+			local _ = p_u_68.Reciever
+		end
+		local v72 = {
+			{ "Title", "New Gift", "Rare" },
+			{ "Div" },
+			{ "MessageDark", string.format("\"%s\"", p_u_68.Message) },
+			{ "Message", string.format("- @%s", p_u_68.SenderName or "???") },
+			{ "Nickname", string.format("(%s)", v71) }
+		}
+		v_u_16.Add(p_u_67, unpack(v72))
+	end
+	if v_u_13.Mobile then
+		local v_u_74 = nil
+		p_u_67.InputBegan:Connect(function(p75)
+			-- upvalues: (ref) v_u_74
+			if p75.UserInputType == Enum.UserInputType.Touch and p75.UserInputState == Enum.UserInputState.Begin then
+				v_u_74 = tick()
+			end
+		end)
+		p_u_67.InputEnded:Connect(function(p76)
+			-- upvalues: (ref) v_u_74, (ref) v_u_14, (copy) v_u_73
+			if p76.UserInputType == Enum.UserInputType.Touch and (p76.UserInputState == Enum.UserInputState.End and v_u_74) then
+				if tick() - v_u_74 < 0.2 then
+					v_u_14.Play("rbxassetid://6907626084", script, 1, 0.2)
+					v_u_73()
+				end
+				v_u_74 = nil
+			end
+		end)
+	else
+		p_u_67.MouseEnter:Connect(function()
+			-- upvalues: (ref) v_u_14, (copy) v_u_73
+			v_u_14.Play("rbxassetid://6907626084", script, 1, 0.2)
+			v_u_73()
+		end)
+		p_u_67.SelectionGained:Connect(function()
+			-- upvalues: (ref) v_u_14, (copy) v_u_73
+			v_u_14.Play("rbxassetid://6907626084", script, 1, 0.2)
+			v_u_73()
+		end)
+	end
+end
+function clearDraft()
+	-- upvalues: (copy) v_u_36, (ref) v_u_43, (ref) v_u_44, (ref) v_u_45, (ref) v_u_46
+	local v78 = v_u_36.Left.Username.Input
+	local v79 = v_u_36.Left.Message.Input
+	local v80 = v_u_36.Right.Diamonds.Diamonds.Input
+	local v81 = v_u_36.Right.Pet.HiddenItem
+	v_u_43 = nil
+	v_u_44 = nil
+	v_u_45 = nil
+	v_u_46 = nil
+	local v82 = v81:FindFirstChild("ItemSlot")
+	if v82 then
+		v82:Destroy()
+	end
+	v78.Text = ""
+	v79.Text = ""
+	v80.Text = ""
+end
+function startResetTask()
+	-- upvalues: (ref) v_u_51, (copy) v_u_1, (copy) v_u_22, (copy) v_u_40, (copy) v_u_15, (copy) v_u_41, (copy) v_u_64
+	if not v_u_51 then
+		local v_u_83 = 0
+		v_u_51 = v_u_1.RenderStepped:Connect(function(p84)
+			-- upvalues: (ref) v_u_83, (ref) v_u_22, (ref) v_u_40, (ref) v_u_15, (ref) v_u_41, (ref) v_u_64
+			v_u_83 = v_u_83 + p84
+			if v_u_83 >= 0.25 then
+				v_u_83 = v_u_83 - 0.25
+				local v85 = v_u_22.Get()
+				local v86
+				if v85 then
+					local v87 = workspace:GetServerTimeNow()
+					local v88 = v85.MailboxResetTime
+					if v88 and v88 >= v87 then
+						local v89 = v88 - v87
+						v86 = math.max(v89, 0)
+					else
+						v86 = nil
+					end
+				else
+					v86 = nil
+				end
+				if v86 then
+					v_u_40.Visible = true
+					v_u_40.Text = ("Resets in %*"):format((v_u_15.TimerString(v86)))
+				else
+					v_u_40.Visible = false
+				end
+				v_u_41.Text = v_u_15.NumberShorten((v_u_64()))
+			end
+		end)
+	end
+end
+function stopResetTask()
+	-- upvalues: (ref) v_u_51
+	if v_u_51 then
+		v_u_51:Disconnect()
+		v_u_51 = nil
+	end
+end
+function openDraft(p90)
+	-- upvalues: (copy) v_u_36, (ref) v_u_43, (ref) v_u_44, (ref) v_u_45, (ref) v_u_46
+	local v91 = v_u_36.Left.Username.Input
+	local v92 = v_u_36.Left.Message.Input
+	local v93 = v_u_36.Right.Diamonds.Diamonds.Input
+	local v94 = v_u_36.Right.Pet.HiddenItem
+	v_u_43 = nil
+	v_u_44 = nil
+	v_u_45 = p90
+	v_u_46 = nil
+	local v95 = v94:FindFirstChild("ItemSlot")
+	if v95 then
+		v95:Destroy()
+	end
+	v91.Text = p90
+	v92.Text = ""
+	v93.Text = ""
+end
+local v_u_96 = nil
+local v_u_222 = {
+	["Send"] = {
+		["Frame"] = "SendFrame",
+		["Update"] = function()
+			-- upvalues: (copy) v_u_36, (copy) v_u_7, (copy) v_u_9, (ref) v_u_45, (ref) v_u_44, (ref) v_u_43, (ref) v_u_46, (copy) v_u_6, (copy) v_u_15, (copy) v_u_30, (copy) v_u_31, (copy) v_u_47, (copy) v_u_17, (copy) v_u_14, (copy) v_u_11, (copy) v_u_4, (copy) v_u_2, (copy) v_u_5, (copy) v_u_24, (copy) v_u_26, (copy) v_u_22, (copy) v_u_18
+			local v_u_97 = v_u_36.Left.Username.Input
+			local v_u_98 = v_u_36.Left.Message.Input
+			local v_u_99 = v_u_36.Right.Diamonds.Diamonds.Input
+			local v_u_100 = v_u_36.Right.Pet.HiddenItem
+			local v_u_101 = v_u_36.Right.Cancel
+			local v102 = v_u_101:FindFirstChild("Button")
+			local v_u_103 = v_u_36.Right.Pet
+			local v_u_104 = v_u_36.Right.Diamonds
+			local v_u_105 = v_u_36.Bottom.Send
+			local function v_u_108()
+				-- upvalues: (ref) v_u_7, (ref) v_u_9, (ref) v_u_45, (ref) v_u_44, (ref) v_u_43, (ref) v_u_46
+				if not v_u_7.CanAfford("Diamonds", v_u_9.Constants.MailboxDiamondCost) then
+					return false, "You don\'t have enough Diamonds to send the gift!"
+				end
+				if not v_u_45 then
+					return false, "You need to supply a player\'s username!"
+				end
+				if not (v_u_44 or v_u_43) then
+					return false, "You need to send either Diamonds or an Item!"
+				end
+				if v_u_46 then
+					local v106 = v_u_46
+					if string.len(v106) >= 2 then
+						local v107 = v_u_46
+						if string.len(v107) > 100 then
+							return false, "Your message is too long!"
+						elseif v_u_44 and v_u_44 < 10000 then
+							return false, "You can\'t send less than 10k diamonds!"
+						elseif v_u_44 and not v_u_7.CanAfford("Diamonds", v_u_9.Constants.MailboxDiamondCost + v_u_44) then
+							return false, "You don\'t have enough Diamonds to send the gift!"
+						else
+							return true
+						end
+					end
+				end
+				return false, "You need to write a message for your mail!"
+			end
+			local function v_u_114(p109)
+				-- upvalues: (ref) v_u_43, (ref) v_u_44, (ref) v_u_45, (ref) v_u_46, (copy) v_u_100, (copy) v_u_97, (copy) v_u_98, (copy) v_u_99, (ref) v_u_6, (copy) v_u_104, (copy) v_u_103, (copy) v_u_101, (ref) v_u_15, (copy) v_u_105, (copy) v_u_108, (ref) v_u_30, (ref) v_u_31
+				if p109 == true then
+					v_u_43 = nil
+					v_u_44 = nil
+					v_u_45 = nil
+					v_u_46 = nil
+					local v110 = v_u_100:FindFirstChild("ItemSlot")
+					if v110 then
+						v110:Destroy()
+					end
+					v_u_97.Text = ""
+					v_u_98.Text = ""
+					v_u_99.Text = ""
+				end
+				local v111 = v_u_100:FindFirstChild("ItemSlot")
+				if v_u_43 then
+					if v111 and v111:GetAttribute("StackKey") ~= v_u_43:StackKey() then
+						v111:Destroy()
+					end
+					if not v_u_100:FindFirstChild("ItemSlot") then
+						local v112 = v_u_6.Create(v_u_43, {
+							["NoActionMenu"] = true,
+							["NoButtonFX"] = true,
+							["HideQuantity"] = v_u_43:GetAmount() == 1
+						})
+						v112:SetAttribute("StackKey", v_u_43:StackKey())
+						v112.Parent = v_u_100
+					end
+				end
+				if v111 and not v_u_43 then
+					v111:Destroy()
+				end
+				v_u_104.Visible = not v_u_43
+				v_u_103.Visible = not v_u_44
+				v_u_101.Visible = v_u_43 or v_u_44
+				for _, v113 in ipairs(v_u_100:GetChildren()) do
+					if v113:GetAttribute("Placeholder") then
+						v113.Visible = v_u_43 == nil
+					end
+				end
+				v_u_15.GradientSwap(v_u_105, v_u_108() and v_u_30 or v_u_31)
+			end
+			if not v_u_47[v_u_36] then
+				v_u_47[v_u_36] = true
+				v_u_99.FocusLost:Connect(function()
+					-- upvalues: (ref) v_u_43, (ref) v_u_17, (copy) v_u_99, (ref) v_u_15, (ref) v_u_44, (ref) v_u_7, (ref) v_u_14, (ref) v_u_11, (copy) v_u_114
+					if v_u_43 then
+						v_u_17.New("You can\'t send Diamonds with an Item!")
+						v_u_99.Text = ""
+						return
+					else
+						local v115 = v_u_15.ParseNumberSmart(v_u_99.Text) or 0
+						if v115 == 0 and not v_u_15.ParseNumberSmart(v_u_99.Text) then
+							v_u_99.Text = ""
+							v_u_44 = nil
+							return
+						elseif v_u_7.CanAfford("Diamonds", v115) then
+							v_u_44 = v115
+							v_u_99.Text = v_u_15.Commas(v115)
+							v_u_14.Play(4586418198, script, 1, 0.35)
+							v_u_11.FlashText(v_u_99)
+							v_u_114()
+						else
+							v_u_99.Text = ""
+							v_u_44 = nil
+							v_u_17.New("Not enough diamonds!", {
+								["err"] = true
+							})
+						end
+					end
+				end)
+				v_u_97.FocusLost:Connect(function()
+					-- upvalues: (copy) v_u_97, (ref) v_u_45, (ref) v_u_15, (copy) v_u_105, (copy) v_u_108, (ref) v_u_30, (ref) v_u_31
+					v_u_45 = v_u_97.Text or ""
+					v_u_15.GradientSwap(v_u_105, v_u_108() and v_u_30 or v_u_31)
+				end)
+				v_u_98.FocusLost:Connect(function()
+					-- upvalues: (copy) v_u_98, (ref) v_u_15, (ref) v_u_17, (ref) v_u_46, (copy) v_u_105, (copy) v_u_108, (ref) v_u_30, (ref) v_u_31
+					local v116 = v_u_98.Text or ""
+					if v_u_15.IsASCII(v116) then
+						v_u_46 = v116
+						v_u_15.GradientSwap(v_u_105, v_u_108() and v_u_30 or v_u_31)
+					else
+						v_u_17.New("That message isn\'t valid!")
+						v_u_98.Text = ""
+					end
+				end)
+				v_u_11.ButtonFX(v102)
+				v102.Activated:Connect(function()
+					-- upvalues: (ref) v_u_43, (ref) v_u_44, (copy) v_u_99, (copy) v_u_114
+					if v_u_43 or v_u_44 then
+						if v_u_43 then
+							v_u_43 = nil
+						end
+						if v_u_44 then
+							v_u_99.Text = ""
+							v_u_44 = nil
+						end
+						v_u_114()
+					end
+				end)
+				v_u_100.Activated:Connect(function()
+					-- upvalues: (ref) v_u_44, (ref) v_u_17, (ref) v_u_4, (ref) v_u_2, (ref) v_u_5, (ref) v_u_43, (copy) v_u_114
+					if v_u_44 then
+						v_u_17.New("You can\'t send an Item with Diamonds!")
+						return
+					else
+						local v117 = v_u_4.Select
+						local v118 = {
+							["Title"] = "Select an item to send!",
+							["SelectionMode"] = v_u_2.SelectionMode.SINGULAR,
+							["QuantityMode"] = v_u_2.QuantityMode.NORMAL,
+							["ResolutionSettings"] = {
+								{
+									["ResolutionThreshold"] = 0.65,
+									["PerRow"] = 4,
+									["Padding"] = UDim2.new(0, 10, 0, 10)
+								},
+								{
+									["ResolutionThreshold"] = 1.2,
+									["PerRow"] = 5,
+									["Padding"] = UDim2.new(0, 15, 0, 15)
+								},
+								{
+									["ResolutionThreshold"] = (1 / 0),
+									["PerRow"] = 6,
+									["Padding"] = UDim2.new(0, 15, 0, 15)
+								}
+							}
+						}
+						local v119, v120 = v117(v118)
+						if v119 and v120 then
+							local v121 = next(v120)
+							if v121 then
+								local v122 = v120[v121]
+								if v122 then
+									local v123 = v_u_5:Get(v121)
+									if v123 then
+										v_u_43 = v123:Clone():SetAmount(v122)
+										v_u_114()
+									end
+								else
+									return
+								end
+							else
+								return
+							end
+						else
+							return
+						end
+					end
+				end)
+				v_u_11.ButtonFX(v_u_105)
+				v_u_105.Activated:Connect(function()
+					-- upvalues: (copy) v_u_108, (ref) v_u_17, (ref) v_u_46, (ref) v_u_24, (copy) v_u_97, (ref) v_u_43, (ref) v_u_26, (ref) v_u_45, (ref) v_u_22, (ref) v_u_44, (ref) v_u_7, (ref) v_u_18, (ref) v_u_14, (copy) v_u_114
+					local v124, v125 = v_u_108()
+					if v124 then
+						local v126 = v_u_46
+						assert(v126)
+						if v_u_24.GetInstanceID() == "XmasWorld" and not v_u_17.New("\226\154\160\239\184\143 You will NOT receive points from sending this! Use Secret Santa to get points! Are you sure you want to send? \226\154\160\239\184\143", true, {
+							["timedLock"] = 8,
+							["title"] = "Heads Up!",
+							["icon"] = "rbxassetid://15287270574",
+							["iconColor"] = Color3.fromRGB(255, 0, 0)
+						}) then
+							return
+						elseif v_u_17.New("\226\156\133 Are you sure you want to send this mail to " .. v_u_97.Text .. "?", true) then
+							if string.match(string.lower(v_u_46), "sign") and not v_u_17.New("WARNING!! Beware of scams! Staff will not sign pets in the mail. You will not get this pet back!", true) then
+								return
+							else
+								if v_u_43 and v_u_43:IsA("Pet") then
+									local v127 = v_u_43
+									if (v127:IsHuge() or (v127:IsTitanic() or v127:IsGargantuan())) and not v_u_17.New("WARNING!! Beware of scams! You probably will not get this pet back!", true) then
+										return
+									end
+								end
+								local v_u_128 = nil
+								pcall(function()
+									-- upvalues: (ref) v_u_128, (ref) v_u_26, (ref) v_u_45
+									v_u_128 = v_u_26:GetUserIdFromNameAsync(v_u_45)
+								end)
+								local _, v129 = pcall(function()
+									-- upvalues: (ref) v_u_26, (ref) v_u_128
+									return v_u_26.LocalPlayer:IsFriendsWith(v_u_128)
+								end)
+								local v130 = v_u_22.Get()
+								if v130 and v130.MailLog then
+									local v131 = v_u_128
+									for _, v132 in ipairs(v130.MailLog) do
+										if v132.Sender and v132.Sender == v131 or v132.Receiver and v132.Receiver == v131 then
+											v129 = true
+										end
+									end
+								end
+								if v129 == true or v_u_17.New("Are you super sure? You don\'t know this person. Remember, staff will never ask you for your pets.", true) then
+									(function()
+										-- upvalues: (ref) v_u_43, (ref) v_u_44, (ref) v_u_7, (ref) v_u_18, (ref) v_u_45, (ref) v_u_46, (ref) v_u_17, (ref) v_u_14
+										local v133, v134, v135
+										if v_u_43 then
+											local v136 = not v_u_44
+											assert(v136)
+											v133 = v_u_43.Class.Name
+											v134 = v_u_43:GetUID()
+											v135 = v_u_43:GetAmount()
+										else
+											local v137 = v_u_44
+											assert(v137)
+											local v138 = v_u_7.GetItem("Diamonds")
+											assert(v138)
+											v133 = v138.Class.Name
+											v134 = v138:GetUID()
+											v135 = v_u_44
+										end
+										local v139, v140 = v_u_18.Invoke("Mailbox: Send", v_u_45, v_u_46, v133, v134, v135)
+										if v139 then
+											v_u_14.Play("rbxassetid://11839132565", script)
+										else
+											v_u_17.New(v140 or "Failed to send! (Unknown error)")
+										end
+									end)()
+									v_u_114(true)
+								end
+							end
+						else
+							return
+						end
+					else
+						v_u_17.New(v125 or "Something went wrong!", {
+							["err"] = true
+						})
+						return
+					end
+				end)
+				local v_u_141 = nil
+				v_u_97:GetPropertyChangedSignal("Text"):Connect(function()
+					-- upvalues: (copy) v_u_97, (ref) v_u_36, (ref) v_u_141, (ref) v_u_26, (ref) v_u_15
+					if v_u_97.Text == "" then
+						v_u_36.Left.Username.GiftPlayerIcon.Image = ""
+						v_u_36.Left.Username.GiftPlayerIcon.Loading.Visible = true
+					else
+						if v_u_141 then
+							task.cancel(v_u_141)
+						end
+						v_u_141 = task.delay(0.5, function()
+							-- upvalues: (ref) v_u_141, (ref) v_u_26, (ref) v_u_97, (ref) v_u_15, (ref) v_u_36
+							v_u_141 = nil
+							local v_u_142 = nil
+							pcall(function()
+								-- upvalues: (ref) v_u_142, (ref) v_u_26, (ref) v_u_97
+								v_u_142 = v_u_26:GetUserIdFromNameAsync(v_u_97.Text)
+							end)
+							if v_u_142 then
+								local v143 = v_u_15.GetThumbnailFromUserIdAsync(v_u_142, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size150x150)
+								if v143 then
+									v_u_36.Left.Username.GiftPlayerIcon.Image = v143
+									v_u_36.Left.Username.GiftPlayerIcon.Loading.Visible = false
+								else
+									v_u_36.Left.Username.GiftPlayerIcon.Image = ""
+									v_u_36.Left.Username.GiftPlayerIcon.Loading.Visible = true
+								end
+							end
+						end)
+					end
+				end)
+			end
+			v_u_114()
+		end
+	},
+	["Gifts"] = {
+		["Frame"] = "GiftsFrame",
+		["Update"] = function()
+			-- upvalues: (ref) v_u_49, (copy) v_u_39, (copy) v_u_15, (copy) v_u_42, (copy) v_u_30, (copy) v_u_31, (copy) v_u_28, (copy) v_u_14, (copy) v_u_17, (copy) v_u_18, (copy) v_u_3, (copy) v_u_6, (copy) v_u_11, (copy) v_u_77, (copy) v_u_53
+			local v144 = v_u_49 ~= nil
+			local v145 = v_u_39.ItemsFrame
+			for _, v146 in ipairs(v145:GetChildren()) do
+				if v146:IsA("Frame") and v146:GetAttribute("Template") then
+					v146:Destroy()
+				end
+			end
+			if not v144 then
+				v_u_39.NoneAvailable.Visible = true
+				return
+			end
+			local v147 = v_u_49
+			assert(v147)
+			v_u_39.NoneAvailable.Visible = #v_u_49.Inbox < 1
+			v_u_15.GradientSwap(v_u_42, #v_u_49.Inbox > 0 and v_u_30 or v_u_31)
+			local v148 = v145:GetChildren()
+			for _, v149 in ipairs(v148) do
+				if not (v149:isA("UIPadding") or v149:isA("UIGridLayout")) then
+					local v150 = false
+					for _, v151 in ipairs(v_u_49.Inbox) do
+						if v151.uuid == v149.Name then
+							v150 = true
+							break
+						end
+					end
+					if not v150 then
+						v149:Destroy()
+					end
+				end
+			end
+			if #v_u_49.Inbox >= 1 then
+				for v152, v_u_153 in ipairs(v_u_49.Inbox) do
+					if not v145:FindFirstChild(v_u_153.uuid) then
+						local v_u_154 = v_u_28.Slot:Clone()
+						v_u_154.Hidden.Present.Username.Text = string.format("@%s", v_u_153.SenderName or "???")
+						local v155 = workspace:GetServerTimeNow() - v_u_153.Timestamp
+						v_u_154.Hidden.notice.Visible = v155 >= 432000
+						local v156 = {
+							["Small"] = "rbxassetid://15708454825",
+							["Medium"] = "rbxassetid://15708454771",
+							["Large"] = "rbxassetid://15708454699"
+						}
+						local function v158()
+							-- upvalues: (ref) v_u_14, (copy) v_u_154, (ref) v_u_15
+							v_u_14.Play("rbxassetid://14882554136", script, nil, 1)
+							v_u_154.Hidden.Visible = false
+							v_u_154.View.Visible = true
+							local v157 = Instance.new("UIScale")
+							v157.Scale = 1.1
+							v157.Parent = v_u_154.View.ItemHolder
+							v_u_15.Tween(v157, {
+								["Scale"] = 1
+							}, { 0.66, "Elastic", "Out" })
+						end
+						local function v162()
+							-- upvalues: (ref) v_u_17, (copy) v_u_153, (ref) v_u_18, (ref) v_u_14
+							if v_u_17.New("Are you sure you want to claim this gift?", true) then
+								local v159 = { v_u_153.uuid }
+								local v160, v161 = v_u_18.Invoke("Mailbox: Claim", v159)
+								if v160 then
+									v_u_14.Play(11648890466, script, 1, 0.5)
+								else
+									v_u_17.New(v161 or "Something went wrong!", {
+										["err"] = true
+									})
+								end
+							else
+								return
+							end
+						end
+						local function v166()
+							-- upvalues: (ref) v_u_17, (copy) v_u_153, (ref) v_u_18
+							if v_u_17.New(v_u_153.IsReturn and "This gift was returned to you. Rejecting it now will DELETE it FOREVER. Are you sure?" or "Are you sure you want to reject this gift? It will be sent back to the sender.", true) then
+								local v163 = { v_u_153.uuid }
+								local v164, v165 = v_u_18.Invoke("Mailbox: Reject", v163)
+								if not v164 then
+									v_u_17.New(v165 or "Something went wrong!", {
+										["err"] = true
+									})
+								end
+							else
+								return
+							end
+						end
+						local v167 = v_u_3.From(v_u_153.Item.class, v_u_153.Item.data)
+						assert(v167)
+						local v168 = v167:GetRarity() and (v167:GetRarity().RarityNumber or 1) or 1
+						local v169 = v156.Small
+						if v168 > 3 then
+							v169 = v156.Medium
+						elseif v168 > 5 then
+							v169 = v156.Large
+						end
+						local v170 = v_u_153.IsGift and "rbxassetid://16717381756" or v169
+						v_u_154.Hidden.Present.Icon.Image = v170
+						local v171 = v_u_154.View.ItemHolder:FindFirstChild("ItemSlot")
+						local v172 = {
+							["Position"] = v171.Position,
+							["Size"] = v171.Size,
+							["AnchorPoint"] = v171.AnchorPoint
+						}
+						v171:Destroy()
+						local v173 = workspace:GetServerTimeNow() - v_u_153.Timestamp
+						local v174 = v_u_15.TimeString(v173) .. " ago"
+						local v175 = v173 <= 120 and "Just now" or v174
+						if not (v_u_153.Sender and v_u_153.Sender) then
+							local _ = v_u_153.Reciever
+						end
+						local v176 = v_u_6.Create(v167, {
+							["NoActionMenu"] = true,
+							["NoButtonFX"] = true,
+							["ShowCurrencyBag"] = true,
+							["HideQuantity"] = v167:GetAmount() == 1,
+							["Mailbox"] = { string.format("\"%s\"", v_u_153.Message), string.format("- @%s", v_u_153.SenderName or "???"), string.format("(%s)", v175) }
+						})
+						v176.Size = v172.Size
+						v176.Parent = v_u_154.View.ItemHolder
+						v_u_11.ButtonFX(v_u_154.Hidden.Present)
+						v_u_154.Hidden.Present.Activated:Connect(v158)
+						v_u_11.ButtonFX(v_u_154.View.Claim)
+						v_u_154.View.Claim.Activated:Connect(v162)
+						v_u_11.ButtonFX(v_u_154.View.Reject)
+						v_u_154.View.Reject.Activated:Connect(v166)
+						v_u_77(v_u_154.Hidden, v_u_153)
+						v_u_154.Name = v_u_153.uuid
+						v_u_154.Parent = v145
+					end
+					v145:FindFirstChild(v_u_153.uuid).LayoutOrder = v152
+				end
+				v_u_53()
+			end
+		end
+	},
+	["Settings"] = {
+		["Frame"] = "SettingsFrame",
+		["Update"] = function()
+			-- upvalues: (ref) v_u_49, (copy) v_u_66, (ref) v_u_96, (copy) v_u_15, (copy) v_u_30, (copy) v_u_29, (copy) v_u_14, (copy) v_u_37, (copy) v_u_20, (copy) v_u_47, (copy) v_u_28
+			if not v_u_49 then
+				v_u_49 = v_u_66()
+			end
+			local v177 = v_u_49
+			assert(v177)
+			v_u_96 = v_u_15.DeepCopyPure(v_u_49.Settings)
+			local function v_u_181(p178, p179)
+				-- upvalues: (ref) v_u_49, (ref) v_u_96, (ref) v_u_15, (ref) v_u_30, (ref) v_u_29, (ref) v_u_14
+				if v_u_49 then
+					if v_u_49.Settings[p179] ~= nil then
+						v_u_96[p179] = not v_u_96[p179]
+						local v180 = v_u_96[p179]
+						v_u_15.GradientSwap(p178, v180 and v_u_30 or v_u_29)
+						p178:FindFirstChild("TextLabel").Text = v_u_96[p179] and "On" or "Off"
+						p178.Position = v180 and UDim2.new(0.7, 0, 0.5, 0) or UDim2.new(0.3, 0, 0.5, 0)
+						v_u_14.Play("rbxassetid://7004248320", script, 1, 0.5)
+					end
+				else
+					return
+				end
+			end
+			local function v_u_185(p182, p183)
+				-- upvalues: (ref) v_u_49, (ref) v_u_96, (ref) v_u_15, (ref) v_u_30, (ref) v_u_29, (ref) v_u_14
+				if v_u_49 then
+					v_u_96.Rarities[p183] = not v_u_96.Rarities[p183]
+					local v184 = v_u_96.Rarities[p183]
+					v_u_15.GradientSwap(p182, v184 and v_u_30 or v_u_29)
+					p182:FindFirstChild("TextLabel").Text = v_u_96.Rarities[p183] and "On" or "Off"
+					p182.Position = v184 and UDim2.new(0.7, 0, 0.5, 0) or UDim2.new(0.3, 0, 0.5, 0)
+					v_u_14.Play("rbxassetid://7004248320", script, 1, 0.5)
+				end
+			end
+			local v186 = v_u_37.Items
+			for _, v187 in ipairs(v186:GetChildren()) do
+				local v188 = v187.Name
+				if v_u_96[v188] ~= nil then
+					local v189 = v187.Toggle.Button
+					local v190 = v_u_96[v188]
+					v_u_15.GradientSwap(v189, v190 and v_u_30 or v_u_29)
+					v189:FindFirstChild("TextLabel").Text = v_u_96[v188] and "On" or "Off"
+					v189.Position = v190 and UDim2.new(0.7, 0, 0.5, 0) or UDim2.new(0.3, 0, 0.5, 0)
+				end
+			end
+			for _, v191 in pairs(v_u_20.Rarity) do
+				if v_u_96.Rarities[v191._id] ~= nil then
+					local v192 = v186:FindFirstChild(v191._id)
+					if v192 then
+						local v193 = v192.Toggle.Button
+						local v194 = v_u_96.Rarities[v191._id]
+						v_u_15.GradientSwap(v193, v194 and v_u_30 or v_u_29)
+						v193:FindFirstChild("TextLabel").Text = v_u_96.Rarities[v191._id] and "On" or "Off"
+						v193.Position = v194 and UDim2.new(0.7, 0, 0.5, 0) or UDim2.new(0.3, 0, 0.5, 0)
+					end
+				end
+			end
+			if not v_u_47[v186] then
+				v_u_47[v186] = true
+				for _, v195 in ipairs(v186:GetChildren()) do
+					local v_u_196 = v195.Name
+					if v_u_96[v_u_196] ~= nil then
+						local v_u_197 = v195.Toggle.Button
+						local v198 = v_u_96[v_u_196]
+						v_u_15.GradientSwap(v_u_197, v198 and v_u_30 or v_u_29)
+						v_u_197:FindFirstChild("TextLabel").Text = v_u_96[v_u_196] and "On" or "Off"
+						v_u_197.Position = v198 and UDim2.new(0.7, 0, 0.5, 0) or UDim2.new(0.3, 0, 0.5, 0)
+						v_u_197.Activated:Connect(function()
+							-- upvalues: (copy) v_u_181, (copy) v_u_197, (copy) v_u_196
+							v_u_181(v_u_197, v_u_196)
+						end)
+					end
+				end
+				for _, v_u_199 in pairs(v_u_20.Rarity) do
+					if not v_u_96.Rarities[v_u_199._id] then
+						v_u_96.Rarities[v_u_199._id] = false
+					end
+					local v200 = v_u_28.RarityTemplate:Clone()
+					local v_u_201 = v200.Toggle.Button
+					local v202 = v_u_96.Rarities[v_u_199._id]
+					v_u_15.GradientSwap(v_u_201, v202 and v_u_30 or v_u_29)
+					v_u_201:FindFirstChild("TextLabel").Text = v_u_96.Rarities[v_u_199._id] and "On" or "Off"
+					v_u_201.Position = v202 and UDim2.new(0.7, 0, 0.5, 0) or UDim2.new(0.3, 0, 0.5, 0)
+					v_u_201.Activated:Connect(function()
+						-- upvalues: (copy) v_u_185, (copy) v_u_201, (copy) v_u_199
+						v_u_185(v_u_201, v_u_199._id)
+					end)
+					v200.SettingName.Text = string.format("%s", v_u_199._id)
+					v200.LayoutOrder = v200.LayoutOrder + v_u_199.RarityNumber
+					v200.Visible = true
+					v200.Name = v_u_199._id
+					v200.Parent = v186
+				end
+			end
+			local v203 = v186:FindFirstChildOfClass("UIListLayout")
+			local v204 = v186:FindFirstChildOfClass("UIPadding")
+			v203:ApplyLayout()
+			local v205 = v203.AbsoluteContentSize.Y + v204.PaddingBottom.Offset + v204.PaddingTop.Offset
+			v186.CanvasSize = UDim2.new(0, 0, 0, v205)
+		end
+	},
+	["History"] = {
+		["Frame"] = "HistoryFrame",
+		["Update"] = function()
+			-- upvalues: (copy) v_u_38, (copy) v_u_22, (copy) v_u_28, (copy) v_u_15, (copy) v_u_3, (copy) v_u_6, (copy) v_u_11, (copy) v_u_19, (copy) v_u_54
+			local v206 = v_u_38.ItemsFrame
+			for _, v207 in ipairs(v206:GetChildren()) do
+				if v207:IsA("Frame") and v207:GetAttribute("Template") then
+					v207:Destroy()
+				end
+			end
+			local v208 = v_u_22.Get()
+			if v208 then
+				v_u_38.NoneAvailable.Visible = #v208.MailLog < 1
+				for v209, v_u_210 in ipairs(v208.MailLog) do
+					if not v206:FindFirstChild(v_u_210.UUID) then
+						local v211 = v_u_28.HistorySlot:Clone()
+						local v212 = workspace:GetServerTimeNow() - v_u_210.Timestamp
+						local v213 = v_u_15.TimeString(v212) .. " ago"
+						local v214 = v212 <= 120 and "Just now" or v213
+						local v215 = v_u_210.Sender ~= nil
+						local v216 = v215 and v_u_210.Sender or v_u_210.Receiver
+						assert(v216)
+						local v217 = v215 and v_u_210.SenderName or v_u_210.RecieverName
+						v211.Username.Text = string.format("@%s", v217 or "???")
+						v211.Username.TextColor3 = v215 and Color3.fromRGB(255, 0, 0) or Color3.fromRGB(0, 255, 0)
+						v211.Holder.Date.Text = v214
+						local v218 = v_u_3.From(v_u_210.Item.class, v_u_210.Item.data)
+						assert(v218)
+						local v219 = v211.Holder:FindFirstChild("ItemSlot")
+						local _ = {
+							["Position"] = v219.Position,
+							["Size"] = v219.Size,
+							["AnchorPoint"] = v219.AnchorPoint
+						}
+						v219:Destroy()
+						local v220 = v_u_6.Create(v218, {
+							["NoActionMenu"] = true,
+							["NoButtonFX"] = true,
+							["ShowCurrencyBag"] = true,
+							["HideQuantity"] = v218:GetAmount() == 1
+						})
+						v220.AnchorPoint = Vector2.new(0.5, 0.5)
+						v220.Position = UDim2.new(0.5, 0, 0.5, 0)
+						v220.LayoutOrder = v209
+						v220.Parent = v211.Holder
+						v211.Name = v_u_210.UUID
+						v211.Parent = v206
+						v_u_11.ButtonFX(v220)
+						v220.Active = true
+						v220.Activated:Connect(function()
+							-- upvalues: (copy) v_u_210, (ref) v_u_19
+							local v221 = v_u_210.SenderName or v_u_210.RecieverName
+							if v221 then
+								openDraft(v221)
+								v_u_19.Fire("Mailbox: Show", "Send")
+							end
+						end)
+					end
+				end
+				v_u_54()
+			end
+		end
+	}
+}
+function show(p223)
+	-- upvalues: (copy) v_u_222, (copy) v_u_34, (ref) v_u_48, (copy) v_u_42, (copy) v_u_35, (copy) v_u_15, (copy) v_u_32, (copy) v_u_31
+	local v224 = v_u_222[p223]
+	assert(v224)
+	v_u_222[p223].Update()
+	for v225, v226 in pairs(v_u_222) do
+		local v227 = v_u_34:FindFirstChild(v226.Frame)
+		if v227 then
+			v227.Visible = v225 == p223
+		else
+			warn(string.format("Couldn\'t find tab %s", v225))
+		end
+	end
+	v_u_48 = p223
+	v_u_42.Visible = p223 == "Gifts"
+	for _, v228 in ipairs(v_u_35:GetChildren()) do
+		if v228.Name == v_u_48 then
+			v_u_15.GradientSwap(v228, v_u_32)
+		else
+			v_u_15.GradientSwap(v228, v_u_31)
+		end
+	end
+end
+v_u_19.Fired("Mailbox: Show"):Connect(show)
+function updateSettings()
+	-- upvalues: (ref) v_u_49, (ref) v_u_96, (copy) v_u_15, (copy) v_u_18, (copy) v_u_17, (copy) v_u_222
+	if v_u_49 and (v_u_96 and not v_u_15.DeepEqualsPure(v_u_96, v_u_49.Settings)) then
+		local v229, v230 = v_u_18.Invoke("Mailbox: Update Settings", v_u_96)
+		if not v229 then
+			v_u_17.New(v230 or "Something went wrong!", {
+				["err"] = true
+			})
+			v_u_96 = v_u_15.DeepCopyPure(v_u_49.Settings)
+			v_u_222.Settings.Update()
+			return
+		end
+	end
+end
+function init()
+	-- upvalues: (ref) v_u_49, (copy) v_u_18, (copy) v_u_19, (copy) v_u_222, (copy) v_u_35, (copy) v_u_11, (copy) v_u_42, (copy) v_u_17, (copy) v_u_14
+	v_u_49 = v_u_18.Invoke("Mailbox: Request")
+	v_u_19.Fire("Inbox Updated", v_u_49)
+	v_u_222.Gifts.Update()
+	v_u_222.History.Update()
+	for _, v_u_231 in ipairs(v_u_35:GetChildren()) do
+		if v_u_231:IsA("ImageButton") then
+			v_u_11.ButtonFX(v_u_231)
+			v_u_231.Activated:Connect(function()
+				-- upvalues: (ref) v_u_222, (copy) v_u_231
+				v_u_222[v_u_231.Name].Update()
+				show(v_u_231.Name)
+				updateSettings()
+			end)
+		end
+	end
+	show("Gifts")
+	v_u_11.ButtonFX(v_u_42)
+	v_u_42.Activated:Connect(function()
+		-- upvalues: (ref) v_u_49, (ref) v_u_17, (ref) v_u_18, (ref) v_u_14
+		if v_u_49 then
+			if #v_u_49.Inbox < 1 then
+				return
+			else
+				local v232 = {}
+				for _, v233 in ipairs(v_u_49.Inbox) do
+					local v234 = v233.uuid
+					table.insert(v232, v234)
+				end
+				if v_u_17.New("Are you sure you want to claim ALL mail?", true) then
+					local v235, v236 = v_u_18.Invoke("Mailbox: Claim", v232)
+					if v235 then
+						v_u_14.Play(11648890466, script, 1, 0.5)
+					else
+						v_u_17.New(v236)
+					end
+				else
+					return
+				end
+			end
+		else
+			return
+		end
+	end)
+end
+v_u_18.Fired("Inbox Updated"):Connect(function(p237)
+	-- upvalues: (ref) v_u_49, (copy) v_u_222
+	v_u_49 = p237
+	v_u_222.Gifts.Update()
+	v_u_222.History.Update()
+end)
+v_u_18.Fired("Outbox Updated"):Connect(function()
+	-- upvalues: (copy) v_u_222
+	v_u_222.Gifts.Update()
+	v_u_222.History.Update()
+end)
+v_u_18.Fired("Mailbox: Add History"):Connect(function(p238)
+	-- upvalues: (copy) v_u_22, (copy) v_u_15, (copy) v_u_27
+	local v239 = v_u_22.Get()
+	if v239 then
+		if not v239.MailLog then
+			v239.MailLog = {}
+		end
+		v_u_15.InsertWithLimit(v239.MailLog, p238, v_u_27.MaxMailLogs)
+	end
+end)
+v21.AddCloseListener(function(p240, _, p241)
+	if p241 then
+		clearDraft()
+	end
+	if p240 == "MailboxMachine" then
+		updateSettings()
+	end
+end)
+v8.AddApproachListener("MailboxMachine", function(_)
+	show("Gifts")
+end)
+v21.Opened:Connect(function(p242)
+	if p242 == "MailboxMachine" then
+		startResetTask()
+	end
+end)
+v21.Closed:Connect(function(p243)
+	if p243 == "MailboxMachine" then
+		stopResetTask()
+	end
+end)
+init()
+v_u_53()
+v_u_54()
