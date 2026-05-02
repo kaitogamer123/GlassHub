@@ -4,41 +4,37 @@ return function()
     getgenv().MitchellLoaded = true
 
     local player = game:GetService("Players").LocalPlayer
-    local targetFolder = workspace:WaitForChild("__THINGS"):WaitForChild("AdminAbuseCharacters")
+    local things = workspace:WaitForChild("__THINGS")
 
     task.spawn(function()
         while true do
-            -- Используем уникальную переменную хаба
-            if getgenv().AutoMitchellActive then
-                local character = player.Character
-                local rootPart = character and character:FindFirstChild("HumanoidRootPart")
+            if getgenv().AutoMitchellActive == true then
+                -- Безопасный поиск папки без зависания консоли
+                local targetFolder = things:FindFirstChild("AdminAbuseCharacters")
                 
-                if rootPart then
-                    local items = targetFolder:GetChildren()
-                    -- Берем первый доступный объект в папке
-                    local target = items[1]
+                if targetFolder then
+                    local character = player.Character
+                    local root = character and character:FindFirstChild("HumanoidRootPart")
                     
-                    if target then
-                        local prompt = target:FindFirstChildWhichIsA("ProximityPrompt", true)
-                        if prompt then
-                            -- Телепортация чуть выше объекта
-                            rootPart.CFrame = target:GetPivot() * CFrame.new(0, 3, 0)
-                            task.wait(0.3)
-                            
-                            -- Активация промпта (работает в большинстве экзекуторов)
-                            if fireproximityprompt then
-                                fireproximityprompt(prompt)
-                            else
-                                -- На всякий случай обычная активация
-                                prompt:InputHoldBegin()
-                                task.wait(0.1)
-                                prompt:InputHoldEnd()
+                    if root then
+                        local items = targetFolder:GetChildren()
+                        local target = items[1] -- Берем Mitchell
+                        
+                        if target and target:IsA("Model") then
+                            local prompt = target:FindFirstChildWhichIsA("ProximityPrompt", true)
+                            if prompt then
+                                -- ТП и активация
+                                root.CFrame = target:GetPivot() * CFrame.new(0, 3, 0)
+                                task.wait(0.3)
+                                if fireproximityprompt then
+                                    fireproximityprompt(prompt)
+                                end
                             end
                         end
                     end
                 end
             end
-            task.wait(1) -- Проверка раз в секунду
+            task.wait(1)
         end
     end)
 end
