@@ -8,19 +8,20 @@ return function()
 
     task.spawn(function()
         while true do
+            -- Работаем только если кнопка включена
             if getgenv().AutoCollectGifts == true then
-                -- В PS99 всего 12 слотов подарков
                 for i = 1, 12 do
                     if not getgenv().AutoCollectGifts then break end
                     
-                    -- Используем pcall, чтобы не было ошибок, если подарок еще не готов
+                    -- Собираем подарки по очереди
                     pcall(function()
                         giftRemote:InvokeServer(i)
                     end)
                     task.wait(0.5) 
                 end
             end
-            task.wait(60) -- Проверяем раз в минуту, чтобы не спамить
+            -- Ждем 2 минуты перед следующей проверкой (подарки в PS99 копятся долго)
+            task.wait(120) 
         end
     end)
 end
