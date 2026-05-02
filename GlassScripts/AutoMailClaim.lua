@@ -4,17 +4,15 @@ return function()
     getgenv().AutoMailLoaded = true
 
     local network = game:GetService("ReplicatedStorage"):WaitForChild("Network")
-    
-    -- Функция для получения списка всех ID писем
+    local save = require(game:GetService("ReplicatedStorage").Library.Client.Save)
+
     local function getMailIds()
         local ids = {}
-        -- Обращаемся к данным игрока через библиотеку игры, чтобы увидеть почту
-        local success, gifts = pcall(function()
-            return require(game:GetService("ReplicatedStorage").Library.Client.Save).Get().Inventory.Mailbox
-        end)
+        -- В PS99 путь именно такой через GetSaves
+        local success, data = pcall(function() return save.GetSaves()[game.Players.LocalPlayer] end)
         
-        if success and gifts then
-            for id, _ in pairs(gifts) do
+        if success and data and data.Inventory and data.Inventory.Mailbox then
+            for id, _ in pairs(data.Inventory.Mailbox) do
                 table.insert(ids, id)
             end
         end
@@ -25,15 +23,12 @@ return function()
         while true do
             if getgenv().AutoClaimMail == true then
                 local mailIds = getMailIds()
-                
                 if #mailIds > 0 then
-                    -- Отправляем список ID в твой ремоут (как в твоем примере)
                     pcall(function()
                         network["Mailbox: Claim"]:InvokeServer(mailIds)
                     end)
                 end
             end
-            -- Проверка каждые 5 секунд, как ты и просил
             task.wait(5)
         end
     end)
