@@ -3,45 +3,54 @@ return function()
     if getgenv().EggSkipLoaded then return end
     getgenv().EggSkipLoaded = true
 
-    local Library = require(game:GetService("ReplicatedStorage"):WaitForChild("Library"))
-    local EggCmds = require(game:GetService("ReplicatedStorage").Library.Client.EggCmds)
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local Library = require(ReplicatedStorage:WaitForChild("Library"))
     
-    getgenv().DisableEggAnim = false
+    getgenv().DisableEggAnim = false -- Переменная для кнопки
 
-    -- 1. ХУК СЕТЕВОГО СОБЫТИЯ (Самый эффективный метод)
-    -- Мы перехватываем момент, когда сервер говорит клиенту "покажи анимацию"
-    local EggAnim = require(game:GetService("ReplicatedStorage").Library.Client.EggOpeningFrontend)
-    local oldPlay = EggAnim.Play
-    
-    EggAnim.Play = function(...)
-        if getgenv().DisableEggAnim then
-            -- Просто возвращаем пустую таблицу, как будто анимация уже закончилась
-            return {
-                Wait = function() return end,
-                Destroy = function() return end
-            }
+    -- 1. УМНЫЙ ХУК (Сохраняем возможность вернуть анимацию)
+    for _, v in pairs(getgc(true)) do
+        if type(v) == "table" and rawget(v, "Play") and type(v.Play) == "function" then
+            local info = getinfo(v.Play)
+            if info.source:find("Egg") or info.source:find("Hatch") then
+                local oldPlay = v.Play
+                v.Play = function(...)
+                    if getgenv().DisableEggAnim then return end -- Если включено, ничего не делаем
+                    return oldPlay(...) -- Если выключено, запускаем оригинал
+                end
+            end
+        elseif type(v) == "function" then
+            local info = getinfo(v)
+            if info.name == "PlayEggAnimation" or info.name == "ShowHatch" then
+                local oldFunc = v
+                hookfunction(v, function(...)
+                    if getgenv().DisableEggAnim then return end
+                    return oldFunc(...)
+                end)
+            end
         end
-        return oldPlay(...)
     end
 
-    -- 2. ОЧИСТКА ЭКРАНА И РАЗБЛОКИРОВКА
+    -- 2. УДАЛЕНИЕ GUI (Работает только при включенном Toggle)
     task.spawn(function()
-        while task.wait(0.5) do
+        while task.wait(0.2) do
             if getgenv().DisableEggAnim then
-                -- Принудительно говорим игре, что мы НЕ открываем яйцо сейчас
-                if Library.Variables then
-                    Library.Variables.OpeningEgg = false
-                end
-
-                -- Удаляем черные экраны, если они появились
                 local pGui = game.Players.LocalPlayer:FindFirstChild("PlayerGui")
                 if pGui then
-                    local eggGui = pGui:FindFirstChild("EggOpen") or pGui:FindFirstChild("Hatch")
-                    if eggGui then 
-                        eggGui.Enabled = false 
+                    for _, gui in pairs(pGui:GetChildren()) do
+                        if gui:IsA("ScreenGui") and (gui.Name:find("Egg") or gui.Name:find("Hatch") or gui.Name:find("Scene")) then
+                            gui:Destroy()
+                        end
                     end
                 end
             end
+        end
+    end)
+
+    -- 3. РАЗБЛОКИРОВКА ИНТЕРФЕЙСА
+    game:GetService("RunService").RenderStepped:Connect(function()
+        if getgenv().DisableEggAnim and Library.Variables then
+            Library.Variables.OpeningEgg = false
         end
     end)
 end
