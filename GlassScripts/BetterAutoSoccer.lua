@@ -1,10 +1,9 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
--- АВТОНОМНЫЙ ПЕРЕХВАТ ПАУЗЫ (Встроенный нотификатор для пулемета)
 task.spawn(function()
     local networkFolder = ReplicatedStorage:WaitForChild("Network")
-    local notificationRemote = networkFolder:WaitForChild("Notification") or networkFolder:FindFirstChildOfClass("RemoteEvent")
+    local notificationRemote = networkFolder:FindFirstChild("Notification") or networkFolder:FindFirstChildOfClass("RemoteEvent")
     
     if notificationRemote and notificationRemote:IsA("RemoteEvent") then
         notificationRemote.OnClientEvent:Connect(function(title, text)
@@ -27,13 +26,11 @@ task.spawn(function()
                 getgenv().SoccerNotificationPause = false
             else
                 local randomPower = math.random(94, 99) / 100
-                
                 task.spawn(function()
                     pcall(function()
                         invokeCustom:InvokeServer("SoccerEvent", "GZ_Step", randomPower)
                     end)
                 end)
-                
                 task.wait(0.1)
             end
         else
