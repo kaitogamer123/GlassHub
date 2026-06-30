@@ -6,16 +6,33 @@ if not _G.SessionGoals then
     _G.SessionGoals = { gift = 0, huge1 = 0, huge2 = 0, titanic = 0, gargantuan = 0 }
 end
 
+-- АВТОНОМНЫЙ ПЕРЕХВАТ ПАУЗЫ (Нотификатор встроен прямо сюда)
+task.spawn(function()
+    local networkFolder = ReplicatedStorage:WaitForChild("Network")
+    -- Слушаем ремоут, который игра использует для уведомлений или смены стадий матча
+    local notificationRemote = networkFolder:WaitForChild("Notification") or networkFolder:FindFirstChildOfClass("RemoteEvent")
+    
+    if notificationRemote and notificationRemote:IsA("RemoteEvent") then
+        notificationRemote.OnClientEvent:Connect(function(title, text)
+            local cleanText = string.lower(tostring(text or title))
+            -- Если в системном уведомлении есть слова о сбросе сфер или отдыхе
+            if cleanText:find("reset") or cleanText:find("sphere") or cleanText:find("intermission") or cleanText:find("break") then
+                getgenv().SoccerNotificationPause = true
+                print("🚨 [GlassHub]: Обнаружено уведомление об отдыхе! Активирую паузу на 30 секунд...")
+            end
+        end)
+    end
+end)
+
 task.spawn(function()
     local networkFolder = ReplicatedStorage:WaitForChild("Network")
     local invokeCustom = networkFolder:WaitForChild("Instancing_InvokeCustomFromClient")
     
     while true do
         if _G.AutoPerfectPowerActive then
-            -- ХУК НА ИНТЕРМИССИЮ: Если вылезло уведомление о сбросе сфер — жестко спим 30 секунд
             if getgenv().SoccerNotificationPause then
                 task.wait(30)
-                getgenv().SoccerNotificationPause = false -- Сбрасываем флаг паузы после отдыха
+                getgenv().SoccerNotificationPause = false
             else
                 local randomPower = math.random(94, 99) / 100
                 local success, response = pcall(function() 
@@ -24,13 +41,10 @@ task.spawn(function()
                 
                 local nextDelay = 0.02
                 
-                -- Если сервер ответил успешно и вернул таблицу данных
                 if success and type(response) == "table" then
                     if response.Success == false then
-                        -- Полный промах комбо: обнуляем внутренний счетчик
                         _G.SessionGoals = { gift = 0, huge1 = 0, huge2 = 0, titanic = 0, gargantuan = 0 }
                     else
-                        -- Парсим попавшие кольца ворот
                         if type(response.Rings) == "table" and #response.Rings > 0 then
                             for _, ringData in pairs(response.Rings) do
                                 local rawId = ringData.Id and tostring(ringData.Id)
@@ -44,10 +58,8 @@ task.spawn(function()
                             end
                         end
                     end
-                    -- Скорость спама ударов во время матча (от 0.01 до 0.04 сек)
                     nextDelay = math.random(1, 4) / 100
                 else
-                    -- ИСПРАВЛЕНО: Если пнуть не получилось (ошибка/nil/Generation Failure) — ждем ровно 1 секунду и пробуем снова
                     nextDelay = 1.0
                 end
                 
