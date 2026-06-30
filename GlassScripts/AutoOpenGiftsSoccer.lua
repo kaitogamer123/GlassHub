@@ -1,30 +1,51 @@
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+-- ====================================================================
+-- 10. ДИНАМИЧЕСКОЕ АВТООТКРЫТИЕ ПОДАРКОВ ОТНОСИТЕЛЬНО ИГРОКА
+-- ====================================================================
+local ReplicatedStorage = game:GetService("InteractivityService") or game:GetService("ReplicatedStorage")
+local LocalPlayer = game:GetService("Players").LocalPlayer
 
 task.spawn(function()
-    local replicatedStorage = game:GetService("ReplicatedStorage")
-    local unlockRemote = replicatedStorage:WaitForChild("Network"):WaitForChild("WR_Unlock")
+    local unlockRemote = ReplicatedStorage:WaitForChild("Network"):WaitForChild("WR_Unlock")
     
-    local giftVectors = {
-        Vector3.new(1428.330322265625, -6.832083702087402, -32052.076171875),
-        Vector3.new(1435.823974609375, -6.832083702087402, -32057.38671875),
-        Vector3.new(1419.276611328125, -6.832083702087402, -32053.62109375),
-        Vector3.new(1437.3677978515625, -6.832083702087402, -32066.44140625),
-        Vector3.new(1413.9664306640625, -6.832083702087402, -32061.11328125),
-        Vector3.new(1432.0576171875, -6.832083702087402, -32073.93359375),
-        Vector3.new(1415.51025390625, -6.832083702087402, -32070.16796875),
-        Vector3.new(1423.00390625, -6.832083702087402, -32075.478515625)
-    }
-
-    if not _G.GlassHubConfig then _G.GlassHubConfig = { AutoGifts = true } end
+    if not _G.GlassHubConfig then 
+        _G.GlassHubConfig = { AutoGifts = true } 
+    end
 
     while true do
+        -- Проверяем переключатель в твоем GUI меню
         if _G.GlassHubConfig and _G.GlassHubConfig.AutoGifts == true then
-            pcall(function()
-                local args = { "5615d7e06a684cbfafa26674ead6cceb", 8, giftVectors }
-                unlockRemote:InvokeServer(unpack(args))
-            end)
+            local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            
+            if hrp then
+                pcall(function()
+                    local pos = hrp.Position
+                    
+                    -- Динамически создаем 8 векторов вокруг текущей позиции игрока
+                    -- Подарки будут падать по кругу на небольшом расстоянии (5 стадов), не улетая под землю (ось Y)
+                    local dynamicVectors = {
+                        Vector3.new(pos.X + 5,  pos.Y, pos.Z),
+                        Vector3.new(pos.X - 5,  pos.Y, pos.Z),
+                        Vector3.new(pos.X,      pos.Y, pos.Z + 5),
+                        Vector3.new(pos.X,      pos.Y, pos.Z - 5),
+                        Vector3.new(pos.X + 3.5, pos.Y, pos.Z + 3.5),
+                        Vector3.new(pos.X - 3.5, pos.Y, pos.Z - 3.5),
+                        Vector3.new(pos.X + 3.5, pos.Y, pos.Z - 3.5),
+                        Vector3.new(pos.X - 3.5, pos.Y, pos.Z + 3.5)
+                    }
+                    
+                    local args = { 
+                        "5615d7e06a684cbfafa26674ead6cceb", 
+                        8, 
+                        dynamicVectors 
+                    }
+                    
+                    unlockRemote:InvokeServer(unpack(args))
+                end)
+            end
+            -- Бешеная скорость тика
             task.wait(0.01)
         else
+            -- Если кнопка в меню выключена — отдыхаем
             task.wait(0.5)
         end
     end
