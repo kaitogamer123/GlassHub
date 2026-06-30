@@ -1,20 +1,22 @@
--- ====================================================================
--- 10. ДИНАМИЧЕСКОЕ АВТООТКРЫТИЕ ПОДАРКОВ ОТНОСИТЕЛЬНО ИГРОКА (ФИКС)
--- ====================================================================
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local LocalPlayer = game:GetService("Players").LocalPlayer
-
 task.spawn(function()
-    local networkFolder = ReplicatedStorage:WaitForChild("Network")
-    local unlockRemote = networkFolder:WaitForChild("WR_Unlock")
+    -- Получаем Network без GetService, напрямую через глобальное пространство игры
+    local networkFolder = game:FindFirstChild("ReplicatedStorage") and game.ReplicatedStorage:FindFirstChild("Network")
+    if not networkFolder then 
+        networkFolder = game:WaitForChild("ReplicatedStorage"):WaitForChild("Network") 
+    end
     
+    local unlockRemote = networkFolder:WaitForChild("WR_Unlock")
+    local lp = game:GetService("Players").LocalPlayer
+
     if not _G.GlassHubConfig then 
         _G.GlassHubConfig = { AutoGifts = true } 
     end
 
     while true do
         if _G.GlassHubConfig and _G.GlassHubConfig.AutoGifts == true then
-            local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            local char = lp.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            
             if hrp then
                 pcall(function()
                     local pos = hrp.Position
