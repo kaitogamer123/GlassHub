@@ -7,7 +7,7 @@ local eggCFrame = CFrame.new(1425.66479, 20.2455292, -32063.8008, -0.975344896, 
 
 local function getNearestCustomEgg()
     local nearestID = nil
-    local minDist = 25 
+    local minDist = 20 
     local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
     if root then
         local customEggs = Workspace.__THINGS:FindFirstChild("CustomEggs")
@@ -34,8 +34,8 @@ task.spawn(function()
                 local distanceXZ = math.sqrt((currentPos.X - startPos.X)^2 + (currentPos.Z - startPos.Z)^2)
                 local distanceY = math.abs(currentPos.Y - startPos.Y)
                 
-                if distanceXZ > 27 or distanceY > 35 then 
-                    local groundCFrame = eggCFrame * CFrame.new(0, -24, 0)
+                if distanceXZ > 20 or distanceY > 20 then 
+                    local groundCFrame = eggCFrame * CFrame.new(0, 0, 0)
                     hrp.CFrame = groundCFrame
                     task.wait(0.05) 
                 end
