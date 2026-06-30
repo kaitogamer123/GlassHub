@@ -6,19 +6,17 @@ if not _G.SessionGoals then
     _G.SessionGoals = { gift = 0, huge1 = 0, huge2 = 0, titanic = 0, gargantuan = 0 }
 end
 
--- АВТОНОМНЫЙ ПЕРЕХВАТ ПАУЗЫ (Нотификатор встроен прямо сюда)
 task.spawn(function()
     local networkFolder = ReplicatedStorage:WaitForChild("Network")
-    -- Слушаем ремоут, который игра использует для уведомлений или смены стадий матча
-    local notificationRemote = networkFolder:WaitForChild("Notification") or networkFolder:FindFirstChildOfClass("RemoteEvent")
+    -- Безопасный поиск без Infinite Yield
+    local notificationRemote = networkFolder:FindFirstChild("Notification") or networkFolder:FindFirstChildOfClass("RemoteEvent")
     
     if notificationRemote and notificationRemote:IsA("RemoteEvent") then
         notificationRemote.OnClientEvent:Connect(function(title, text)
             local cleanText = string.lower(tostring(text or title))
-            -- Если в системном уведомлении есть слова о сбросе сфер или отдыхе
             if cleanText:find("reset") or cleanText:find("sphere") or cleanText:find("intermission") or cleanText:find("break") then
                 getgenv().SoccerNotificationPause = true
-                print("🚨 [GlassHub]: Обнаружено уведомление об отдыхе! Активирую паузу на 30 секунд...")
+                print("🚨 [GlassHub]: Пауза на 30 секунд активирована.")
             end
         end)
     end
@@ -62,7 +60,6 @@ task.spawn(function()
                 else
                     nextDelay = 1.0
                 end
-                
                 task.wait(nextDelay)
             end
         else
